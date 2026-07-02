@@ -121,6 +121,17 @@
   .mmore{font-family:var(--font-mono); font-size:9px; color:var(--muted); padding-left:5px;}
   .mnote{font-size:10px; color:var(--muted);}
 
+  /* ---------- on-deck names (parking lot) ---------- */
+  .bullpen-card{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:18px 20px;}
+  .bp-input{display:flex; gap:10px; margin-bottom:14px;}
+  .bp-input input{flex:1;}
+  .bp-list{display:flex; flex-wrap:wrap; gap:9px;}
+  .bp-chip{display:inline-flex; align-items:center; gap:6px; background:var(--charcoal); border:1px solid var(--border); border-radius:22px; padding:8px 7px 8px 14px; font-size:13.5px; color:var(--cream); cursor:pointer; transition:border-color .12s;}
+  .bp-chip:hover{border-color:var(--gold);}
+  .bp-x{width:20px; height:20px; border-radius:50%; border:none; background:transparent; color:var(--muted); font-size:16px; line-height:1; cursor:pointer; display:grid; place-items:center; padding:0;}
+  .bp-x:hover{background:rgba(255,82,54,.16); color:var(--alert);}
+  .bp-empty{color:var(--muted); font-size:13px; padding:6px 2px;}
+
   /* ---------- controls ---------- */
   .controls{display:flex; flex-wrap:wrap; gap:12px 20px; align-items:center; margin-bottom:16px;}
   .daytabs{display:flex; gap:8px; flex-wrap:wrap;}
@@ -311,9 +322,24 @@
     </div>
   </section>
 
+  <!-- ON DECK / NAMES -->
+  <section id="bullpen">
+    <div class="sec-head">
+      <div><div class="eyebrow">02 · On Deck</div><h2>People to Schedule</h2></div>
+      <div class="mono" style="font-size:11px;color:var(--muted)">Drop names now, place them on a day later</div>
+    </div>
+    <div class="bullpen-card">
+      <div class="bp-input">
+        <input id="bpInput" placeholder="Add a name, press Enter — or paste a comma-separated list" autocomplete="off" />
+        <button class="btn btn-primary" id="bpAdd">+ Add</button>
+      </div>
+      <div class="bp-list" id="bpList"></div>
+    </div>
+  </section>
+
   <!-- BOARD -->
   <section id="board">
-    <div class="sec-head"><div><div class="eyebrow">02 · The Day</div><h2>Day Board</h2></div></div>
+    <div class="sec-head"><div><div class="eyebrow">03 · The Day</div><h2>Day Board</h2></div></div>
     <div class="controls">
       <div class="daytabs" id="dayTabs" role="tablist" aria-label="Key days"></div>
       <div class="filters" id="filters" aria-label="Filter tracks">
@@ -330,7 +356,7 @@
   <!-- PODCAST LINE-UP -->
   <section id="lineup">
     <div class="sec-head">
-      <div><div class="eyebrow">03 · The Podcast</div><h2>August After Dark · Line-Up</h2></div>
+      <div><div class="eyebrow">04 · The Podcast</div><h2>August After Dark · Line-Up</h2></div>
       <div class="sec-tools"><button class="btn btn-primary" id="addEpBtn">+ Add episode</button></div>
     </div>
     <div class="lineup" id="lineupBody"></div>
@@ -338,7 +364,7 @@
 
   <!-- ROSTER + LEGEND -->
   <section id="roster">
-    <div class="sec-head"><div><div class="eyebrow">04 · Reference</div><h2>Legend &amp; Kit</h2></div></div>
+    <div class="sec-head"><div><div class="eyebrow">05 · Reference</div><h2>Legend &amp; Kit</h2></div></div>
     <div class="grid2">
       <div class="card">
         <h3>Track Legend</h3>
@@ -449,15 +475,16 @@ const SEED_EVENTS=[
 ];
 
 /* ---- state ---- */
-let state={events:[], selectedDay:24};
+let state={events:[], selectedDay:24, names:[]};
 function clone(o){return JSON.parse(JSON.stringify(o));}
 function uid(){return 'e'+Math.random().toString(36).slice(2,8)+Date.now().toString(36).slice(-4);}
 function load(){
-  try{const raw=localStorage.getItem(STORAGE_KEY); if(raw){const d=JSON.parse(raw); if(Array.isArray(d.events)){state.events=d.events; state.selectedDay=d.selectedDay||24; return;}}}catch(e){}
+  try{const raw=localStorage.getItem(STORAGE_KEY); if(raw){const d=JSON.parse(raw); if(Array.isArray(d.events)){state.events=d.events; state.selectedDay=d.selectedDay||24; state.names=Array.isArray(d.names)?d.names:[]; return;}}}catch(e){}
   state.events=clone(SEED_EVENTS);
 }
+function snapshot(){ return {events:state.events, selectedDay:state.selectedDay, names:state.names}; }
 function save(){
-  try{localStorage.setItem(STORAGE_KEY, JSON.stringify({events:state.events, selectedDay:state.selectedDay}));}catch(e){}
+  try{localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot()));}catch(e){}
   if(ghToken()) scheduleGhPush(); else setSync('local');
 }
 
@@ -736,7 +763,7 @@ async function ghGet(){
 async function ghPut(){
   if(!ghToken()) throw new Error('no token');
   const url=`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${GH.file}`;
-  const body=()=>JSON.stringify(Object.assign({message:'Update schedule', content:b64enc(JSON.stringify({events:state.events,selectedDay:state.selectedDay},null,2)), branch:GH.branch}, remoteSha?{sha:remoteSha}:{}));
+  const body=()=>JSON.stringify(Object.assign({message:'Update schedule', content:b64enc(JSON.stringify(snapshot(),null,2)), branch:GH.branch}, remoteSha?{sha:remoteSha}:{}));
   let res=await fetch(url,{method:'PUT',headers:ghHeaders(),body:body()});
   if(res.status===409||res.status===422){ await ghGet(); res=await fetch(url,{method:'PUT',headers:ghHeaders(),body:body()}); }
   if(!res.ok) throw new Error('write '+res.status);
@@ -749,14 +776,24 @@ function setSync(kind){
 }
 function scheduleGhPush(){ setSync('syncing'); clearTimeout(pushTimer); pushTimer=setTimeout(()=>{ ghPut().then(()=>setSync('synced')).catch(()=>setSync('error')); },900); }
 function adoptRemote(remote){
-  if(!remote||!Array.isArray(remote.events)) return false;
-  const ids=new Set(remote.events.map(e=>e.id));
-  const extras=state.events.filter(e=>!ids.has(e.id));
-  const byId={}; remote.events.forEach(e=>byId[e.id]=e); extras.forEach(e=>byId[e.id]=e);
-  state.events=Object.values(byId);
+  if(!remote) return false;
+  let changed=false;
+  if(Array.isArray(remote.events)){
+    const ids=new Set(remote.events.map(e=>e.id));
+    const extras=state.events.filter(e=>!ids.has(e.id));
+    const byId={}; remote.events.forEach(e=>byId[e.id]=e); extras.forEach(e=>byId[e.id]=e);
+    state.events=Object.values(byId);
+    if(extras.length) changed=true;
+  }
+  if(Array.isArray(remote.names)){
+    const set=new Set(remote.names.map(n=>n.toLowerCase()));
+    const nx=state.names.filter(n=>!set.has(n.toLowerCase()));
+    state.names=remote.names.concat(nx);
+    if(nx.length) changed=true;
+  }
   if(remote.selectedDay) state.selectedDay=remote.selectedDay;
-  try{localStorage.setItem(STORAGE_KEY,JSON.stringify({events:state.events,selectedDay:state.selectedDay}));}catch(e){}
-  return extras.length>0;
+  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(snapshot()));}catch(e){}
+  return changed;
 }
 const syncModal=document.getElementById('syncModal'), syncBackdrop=document.getElementById('syncBackdrop');
 function openSync(){ document.getElementById('tokenErr').textContent=''; document.getElementById('tokenInput').value=''; document.getElementById('disconnectBtn').style.display=ghToken()?'inline-flex':'none'; syncModal.classList.add('open'); syncBackdrop.classList.add('open'); setTimeout(()=>document.getElementById('tokenInput').focus(),60); }
@@ -775,8 +812,26 @@ document.getElementById('syncSave').addEventListener('click',async()=>{
 document.getElementById('refreshBtn').addEventListener('click',async()=>{ setSync('syncing'); try{ adoptRemote(await ghGet()); renderAll(); setSync(ghToken()?'synced':'local'); }catch(e){ setSync('error'); } });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&syncModal.classList.contains('open'))closeSync(); });
 
+/* ========== ON-DECK NAMES (parking lot) ========== */
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function renderBullpen(){
+  const list=document.getElementById('bpList'); if(!list) return;
+  if(!state.names.length){ list.innerHTML='<div class="bp-empty">No names yet — jot down anyone you want to slot in later.</div>'; return; }
+  list.innerHTML=state.names.map((n,i)=>`<span class="bp-chip" data-i="${i}" title="Click to schedule ${esc(n)}">${esc(n)}<button class="bp-x" data-del="${i}" aria-label="Remove ${esc(n)}">×</button></span>`).join('');
+  list.querySelectorAll('.bp-chip').forEach(c=>c.addEventListener('click',e=>{ if(e.target.closest('.bp-x'))return; scheduleFromName(state.names[+c.dataset.i]); }));
+  list.querySelectorAll('.bp-x').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); state.names.splice(+b.dataset.del,1); save(); renderBullpen(); }));
+}
+function addNames(raw){
+  const parts=(raw||'').split(/[,\n]/).map(s=>s.trim()).filter(Boolean); let added=0;
+  parts.forEach(p=>{ if(!state.names.some(n=>n.toLowerCase()===p.toLowerCase())){ state.names.push(p); added++; } });
+  if(added){ save(); renderBullpen(); }
+}
+function scheduleFromName(name){ openEditor(null,state.selectedDay); F.guest.value=name; document.getElementById('dTitle').textContent='Schedule: '+name; }
+document.getElementById('bpAdd').addEventListener('click',()=>{ const el=document.getElementById('bpInput'); addNames(el.value); el.value=''; el.focus(); });
+document.getElementById('bpInput').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); addNames(e.target.value); e.target.value=''; } });
+
 /* ========== INIT ========== */
-function renderAll(){ renderMonth(); renderTabs(); renderBoard(); renderLineup(); renderWatch(); refreshStats(); }
+function renderAll(){ renderMonth(); renderBullpen(); renderTabs(); renderBoard(); renderLineup(); renderWatch(); refreshStats(); }
 async function boot(){
   load(); buildDayOptions(); renderAll(); tick(); setInterval(tick,1000);
   window.addEventListener('resize',()=>renderBoard());
