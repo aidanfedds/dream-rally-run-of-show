@@ -41,7 +41,19 @@
   .brand-name{font-family:var(--font-display); font-weight:600; letter-spacing:.14em; font-size:13px;}
   .brand-sub{font-family:var(--font-mono); font-size:10px; letter-spacing:.2em; color:var(--muted);}
   .saved{display:flex; align-items:center; gap:8px; font-family:var(--font-mono); font-size:11px; color:var(--gray); letter-spacing:.1em;}
-  .save-dot{width:8px; height:8px; border-radius:50%; background:var(--lime); box-shadow:0 0 10px var(--lime);}
+  .save-dot{width:8px; height:8px; border-radius:50%; background:var(--slate); box-shadow:0 0 10px var(--slate);}
+  .synclink{background:transparent; border:1px solid var(--border); color:var(--gray); font-family:var(--font-mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; padding:5px 10px; border-radius:7px; cursor:pointer;}
+  .synclink:hover{border-color:var(--gold); color:var(--cream);}
+  .modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.66); backdrop-filter:blur(3px); opacity:0; pointer-events:none; transition:opacity .2s; z-index:80;}
+  .modal-backdrop.open{opacity:1; pointer-events:auto;}
+  .modal{position:fixed; z-index:90; top:50%; left:50%; transform:translate(-50%,-46%); width:min(520px,94vw); max-height:90vh; overflow:auto; background:var(--panel-2); border:1px solid var(--hair); border-radius:16px; padding:26px; opacity:0; pointer-events:none; transition:opacity .2s, transform .2s;}
+  .modal.open{opacity:1; pointer-events:auto; transform:translate(-50%,-50%);}
+  .modal h3{font-family:var(--font-display); font-weight:700; text-transform:uppercase; font-size:24px; margin:0 0 6px;}
+  .modal p{color:var(--gray); font-size:13.5px; margin:0 0 14px;}
+  .modal ol{color:var(--gray); font-size:13px; margin:0 0 12px; padding-left:20px; line-height:1.65;} .modal ol b{color:var(--cream);}
+  .modal .tok-link{display:inline-block; margin-bottom:14px; font-family:var(--font-mono); font-size:12px; color:var(--gold-hi);}
+  .modal .err{color:var(--alert); font-size:12.5px; font-family:var(--font-mono); min-height:18px; margin:8px 0 0;}
+  .modal .actions{display:flex; gap:10px; align-items:center; margin-top:16px;} .modal .actions .spacer{margin-left:auto;}
 
   .wrap{max-width:1300px; margin:0 auto; padding:0 22px;}
 
@@ -245,7 +257,12 @@
     <div class="brand-mark">A</div>
     <div><div class="brand-name">AUGUST LUXURY MOTORCARS</div><div class="brand-sub">RACE CONTROL · PRODUCTION OPS</div></div>
   </div>
-  <div class="saved"><span class="save-dot"></span><span id="saveStatus">Saved to this browser</span></div>
+  <div class="saved">
+    <span class="save-dot" id="syncDot"></span>
+    <span id="saveStatus">Local only — connect to sync</span>
+    <button class="synclink" id="refreshBtn" title="Pull the latest from GitHub" aria-label="Refresh from GitHub">↻</button>
+    <button class="synclink" id="connectBtn">Connect</button>
+  </div>
 </header>
 
 <div class="wrap">
@@ -398,6 +415,27 @@
   </div>
 </aside>
 
+<!-- GITHUB SYNC MODAL -->
+<div class="modal-backdrop" id="syncBackdrop"></div>
+<div class="modal" id="syncModal" role="dialog" aria-modal="true" aria-labelledby="syncTitle">
+  <h3 id="syncTitle">Connect to GitHub</h3>
+  <p>Paste a GitHub token and every edit auto-saves to GitHub for the whole team. The token lives only in this browser — it's never uploaded or committed.</p>
+  <ol>
+    <li>Open the token page (link below) while signed in as <b>aidanfedds</b>.</li>
+    <li>Resource owner <b>aidanfedds</b> · Repository access → <b>Only select repositories</b> → <b>dream-rally-run-of-show</b>.</li>
+    <li>Permissions → Repository → <b>Contents: Read and write</b>. Generate, then copy the <b>github_pat_…</b> token.</li>
+  </ol>
+  <a class="tok-link" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Create a token on GitHub →</a>
+  <input id="tokenInput" type="password" placeholder="github_pat_… or ghp_…" autocomplete="off" />
+  <div class="err" id="tokenErr"></div>
+  <div class="actions">
+    <button class="btn btn-danger" id="disconnectBtn" style="display:none">Disconnect</button>
+    <span class="spacer"></span>
+    <button class="btn" id="syncCancel">Cancel</button>
+    <button class="btn btn-primary" id="syncSave">Connect &amp; sync</button>
+  </div>
+</div>
+
 <script>
 /* ============================================================
    DREAM RALLY · RUN OF SHOW — editable, auto-saving planner
@@ -425,11 +463,9 @@ function load(){
   try{const raw=localStorage.getItem(STORAGE_KEY); if(raw){const d=JSON.parse(raw); if(Array.isArray(d.events)){state.events=d.events; state.selectedDay=d.selectedDay||24; return;}}}catch(e){}
   state.events=clone(SEED_EVENTS);
 }
-let saveTimer=null;
 function save(){
   try{localStorage.setItem(STORAGE_KEY, JSON.stringify({events:state.events, selectedDay:state.selectedDay}));}catch(e){}
-  const s=document.getElementById('saveStatus'); s.textContent='Saved ✓';
-  clearTimeout(saveTimer); saveTimer=setTimeout(()=>{s.textContent='Saved to this browser';},1400);
+  if(ghToken()) scheduleGhPush(); else setSync('local');
 }
 
 /* ---- helpers ---- */
@@ -687,10 +723,78 @@ document.getElementById('impFile').addEventListener('change',ev=>{
 });
 /* Reset button removed by request — protects the team's planning from an accidental wipe. */
 
+/* ========== GITHUB SYNC ========== */
+const GH={owner:'aidanfedds',repo:'dream-rally-run-of-show',branch:'main',file:'schedule.json'};
+const TOKEN_KEY='dreamRally.ghtoken';
+let remoteSha=null, pushTimer=null;
+function ghToken(){ try{return localStorage.getItem(TOKEN_KEY)||'';}catch(e){return '';} }
+function setToken(t){ try{ t?localStorage.setItem(TOKEN_KEY,t):localStorage.removeItem(TOKEN_KEY);}catch(e){} }
+function b64enc(s){ return btoa(unescape(encodeURIComponent(s))); }
+function b64dec(b){ return decodeURIComponent(escape(atob(b))); }
+function ghHeaders(){ const h={'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}; const t=ghToken(); if(t)h['Authorization']='Bearer '+t; return h; }
+async function ghGet(){
+  const url=`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${GH.file}?ref=${GH.branch}`;
+  const res=await fetch(url,{headers:ghHeaders(),cache:'no-store'});
+  if(res.status===404){ remoteSha=null; return null; }
+  if(!res.ok) throw new Error('read '+res.status);
+  const j=await res.json(); remoteSha=j.sha;
+  return JSON.parse(b64dec((j.content||'').replace(/\n/g,'')));
+}
+async function ghPut(){
+  if(!ghToken()) throw new Error('no token');
+  const url=`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${GH.file}`;
+  const body=()=>JSON.stringify(Object.assign({message:'Update schedule', content:b64enc(JSON.stringify({events:state.events,selectedDay:state.selectedDay},null,2)), branch:GH.branch}, remoteSha?{sha:remoteSha}:{}));
+  let res=await fetch(url,{method:'PUT',headers:ghHeaders(),body:body()});
+  if(res.status===409||res.status===422){ await ghGet(); res=await fetch(url,{method:'PUT',headers:ghHeaders(),body:body()}); }
+  if(!res.ok) throw new Error('write '+res.status);
+  const j=await res.json(); remoteSha=(j.content&&j.content.sha)||remoteSha;
+}
+function setSync(kind){
+  const dot=document.getElementById('syncDot'), txt=document.getElementById('saveStatus'), btn=document.getElementById('connectBtn');
+  const map={local:['#7E8896','Local only — connect to sync'],synced:['#53f445','Synced to GitHub ✓'],syncing:['#EFA201','Syncing…'],error:['#FF5236','Sync error — retrying']};
+  const m=map[kind]||map.local; if(dot){dot.style.background=m[0]; dot.style.boxShadow='0 0 10px '+m[0];} if(txt)txt.textContent=m[1]; if(btn)btn.textContent=ghToken()?'Disconnect':'Connect';
+}
+function scheduleGhPush(){ setSync('syncing'); clearTimeout(pushTimer); pushTimer=setTimeout(()=>{ ghPut().then(()=>setSync('synced')).catch(()=>setSync('error')); },900); }
+function adoptRemote(remote){
+  if(!remote||!Array.isArray(remote.events)) return false;
+  const ids=new Set(remote.events.map(e=>e.id));
+  const extras=state.events.filter(e=>!ids.has(e.id));
+  const byId={}; remote.events.forEach(e=>byId[e.id]=e); extras.forEach(e=>byId[e.id]=e);
+  state.events=Object.values(byId);
+  if(remote.selectedDay) state.selectedDay=remote.selectedDay;
+  try{localStorage.setItem(STORAGE_KEY,JSON.stringify({events:state.events,selectedDay:state.selectedDay}));}catch(e){}
+  return extras.length>0;
+}
+const syncModal=document.getElementById('syncModal'), syncBackdrop=document.getElementById('syncBackdrop');
+function openSync(){ document.getElementById('tokenErr').textContent=''; document.getElementById('tokenInput').value=''; document.getElementById('disconnectBtn').style.display=ghToken()?'inline-flex':'none'; syncModal.classList.add('open'); syncBackdrop.classList.add('open'); setTimeout(()=>document.getElementById('tokenInput').focus(),60); }
+function closeSync(){ syncModal.classList.remove('open'); syncBackdrop.classList.remove('open'); }
+document.getElementById('connectBtn').addEventListener('click',openSync);
+document.getElementById('syncCancel').addEventListener('click',closeSync);
+syncBackdrop.addEventListener('click',closeSync);
+document.getElementById('disconnectBtn').addEventListener('click',()=>{ setToken(''); closeSync(); setSync('local'); });
+document.getElementById('syncSave').addEventListener('click',async()=>{
+  const t=document.getElementById('tokenInput').value.trim(), err=document.getElementById('tokenErr');
+  if(!t){ err.textContent='Paste your token first.'; return; }
+  err.textContent='Checking token…'; setToken(t);
+  try{ await ghGet(); await ghPut(); err.textContent=''; closeSync(); setSync('synced'); }
+  catch(e){ setToken(''); err.textContent='That token didn’t work — make sure it has Contents: Read and write on this repo. ('+e.message+')'; setSync('local'); }
+});
+document.getElementById('refreshBtn').addEventListener('click',async()=>{ setSync('syncing'); try{ adoptRemote(await ghGet()); renderAll(); setSync(ghToken()?'synced':'local'); }catch(e){ setSync('error'); } });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&syncModal.classList.contains('open'))closeSync(); });
+
 /* ========== INIT ========== */
 function renderAll(){ renderMonth(); renderTabs(); renderBoard(); renderLineup(); renderWatch(); refreshStats(); }
-load(); buildDayOptions(); renderAll(); tick(); setInterval(tick,1000);
-window.addEventListener('resize',()=>renderBoard());
+async function boot(){
+  load(); buildDayOptions(); renderAll(); tick(); setInterval(tick,1000);
+  window.addEventListener('resize',()=>renderBoard());
+  setSync(ghToken()?'syncing':'local');
+  try{
+    const r=await ghGet();
+    if(r===null){ if(ghToken()){ try{ await ghPut(); setSync('synced'); }catch(e){ setSync('error'); } } else setSync('local'); }
+    else { const hadExtras=adoptRemote(r); renderAll(); if(ghToken()){ if(hadExtras){ try{ await ghPut(); }catch(e){} } setSync('synced'); } else setSync('local'); }
+  }catch(e){ setSync(ghToken()?'error':'local'); }
+}
+boot();
 </script>
 </body>
 </html>

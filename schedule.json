@@ -1,0 +1,7 @@
+{
+  "events": [
+    {"id":"reklaws-land","day":24,"start":"11:00","end":"11:45","track":"logistics","title":"The Reklaws Land · YLW","guest":"The Reklaws — Jenna & Stuart Walker","loc":"Kelowna Int’l Airport (YLW)","people":["Runner / Driver"],"gear":"","notes":"Flight lands 11:00. Meet at arrivals with a sign, load gear, transfer to the showroom.","status":"locked"},
+    {"id":"reklaws-ep","day":24,"start":"13:00","end":"14:00","track":"podcast","title":"Podcast · The Reklaws","guest":"The Reklaws — Jenna & Stuart Walker","loc":"Showroom studio","people":["Matt August"],"gear":"3-cam · a7S3 / FX3 / FX30","notes":"Locked anchor taping — everything Friday flexes around this hour.","status":"locked"}
+  ],
+  "selectedDay": 24
+}
