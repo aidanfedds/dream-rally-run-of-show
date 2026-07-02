@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Dream Rally 2026 · Run of Show — August Luxury Motorcars</title>
+<title>Dream Rally 2026 · Production Schedule — August Luxury Motorcars</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -272,7 +272,7 @@
     <div class="hero-grid">
       <div>
         <div class="eyebrow">Okanagan Dream Rally · July 2026</div>
-        <h1>Dream Rally<br><span class="thin">Run of</span> <span class="gold">Show</span></h1>
+        <h1>Dream Rally<br><span class="thin">Production</span> <span class="gold">Schedule</span></h1>
         <p class="lead">The team's single source of truth for the week. Click a day to open it, then build the schedule block by block — call times, guests, crew, gear. Everything you add shows on the calendar and saves automatically.</p>
       </div>
       <div class="countdown">
@@ -292,11 +292,6 @@
       <div class="stat"><div class="n" id="stEps">0</div><div class="l">Podcast Episodes</div></div>
       <div class="stat"><div class="n" id="stLocked">0</div><div class="l">Locked Blocks</div></div>
       <div class="stat"><div class="n">$4.7M<span style="font-size:16px">+</span></div><div class="l">Raised To Date</div></div>
-    </div>
-
-    <div class="howto">
-      <span class="tag">How to</span>
-      <div>Click any day on the calendar to open it, then hit <b>+ Add block</b> to schedule. Click a block to edit or delete it. Only the <b>Reklaws</b> (land 11 AM Fri, taping 1–2 PM Fri) are pre-filled — everything else is yours to build. Use <kbd>Export</kbd> to hand the schedule to the team or send it to me to publish a live link.</div>
     </div>
   </section>
 
@@ -324,7 +319,6 @@
       <div class="filters" id="filters" aria-label="Filter tracks">
         <span class="mono" style="font-size:10px;color:var(--muted);letter-spacing:.14em">TRACKS</span>
         <button class="fchip" data-track="podcast" aria-pressed="true"><span class="sw" style="background:var(--lime)"></span>Podcast</button>
-        <button class="fchip" data-track="rally" aria-pressed="true"><span class="sw" style="background:var(--gold)"></span>Rally</button>
         <button class="fchip" data-track="logistics" aria-pressed="true"><span class="sw" style="background:var(--slate)"></span>Logistics</button>
       </div>
     </div>
@@ -349,7 +343,6 @@
       <div class="card">
         <h3>Track Legend</h3>
         <div class="legend-row"><span class="sw" style="background:var(--lime)"></span><span>Podcast — August After Dark tapings</span><span class="desc">Showroom studio</span></div>
-        <div class="legend-row"><span class="sw" style="background:var(--gold)"></span><span>Dream Rally — event &amp; on-course</span><span class="desc">Grid / route</span></div>
         <div class="legend-row"><span class="sw" style="background:var(--slate)"></span><span>Logistics — crew, transport, gear</span><span class="desc">Support</span></div>
         <div class="legend-row"><span class="sw" style="background:transparent;box-shadow:inset 0 0 0 1px rgba(253,244,224,.5)"></span><span>🔒 Locked — do not move</span><span class="desc">Anchored</span></div>
         <div class="legend-row"><span class="sw" style="background:var(--alert)"></span><span>NOW line · conflict alerts</span><span class="desc">Live</span></div>
@@ -366,7 +359,7 @@
 
   <footer>
     <div class="f-grid">
-      <div>August Luxury Motorcars · Okanagan Dream Rally 2026 · Run of Show<br>Times Pacific · Built for Matt August by Aidan Feddersen · Auto-saves to your browser</div>
+      <div>August Luxury Motorcars · Okanagan Dream Rally 2026 · Production Schedule<br>Times Pacific · Built for Matt August by Aidan Feddersen · Auto-saves &amp; syncs to GitHub</div>
       <div style="display:flex;gap:10px"><button class="btn" onclick="window.print()">⎙ Print</button><button class="btn" onclick="document.getElementById('board').scrollIntoView()">↑ Board</button></div>
     </div>
   </footer>
@@ -386,7 +379,7 @@
     <div class="frow2">
       <div><label for="fDay">Day (July)</label><select id="fDay" name="day"></select></div>
       <div><label for="fTrack">Track</label><select id="fTrack" name="track">
-        <option value="podcast">Podcast</option><option value="rally">Rally</option><option value="logistics">Logistics</option>
+        <option value="podcast">Podcast</option><option value="logistics">Logistics</option>
       </select></div>
     </div>
     <div class="frow2">
@@ -651,8 +644,8 @@ function renderNowLine(startMin,endMin){
 }
 
 /* ========== FILTERS ========== */
-const activeTracks=new Set(['podcast','rally','logistics']);
-function applyFilters(){ document.querySelectorAll('.evt').forEach(el=>el.classList.toggle('hide',!activeTracks.has(el.dataset.track))); }
+const activeTracks=new Set(['podcast','logistics']);
+function applyFilters(){ document.querySelectorAll('.evt').forEach(el=>{ const t=el.dataset.track; el.classList.toggle('hide',(t==='podcast'||t==='logistics')&&!activeTracks.has(t)); }); }
 document.getElementById('filters').addEventListener('click',e=>{ const b=e.target.closest('.fchip'); if(!b)return; const t=b.dataset.track, on=b.getAttribute('aria-pressed')==='true'; b.setAttribute('aria-pressed',String(!on)); on?activeTracks.delete(t):activeTracks.add(t); applyFilters(); });
 
 /* ========== SELECT DAY ========== */

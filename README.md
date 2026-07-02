@@ -1,4 +1,4 @@
-# Dream Rally 2026 — Run of Show
+# Dream Rally 2026 — Production Schedule
 
 Interactive production planner for the **Okanagan Dream Rally 2026** (August Luxury Motorcars).
 Single-file app: `index.html`. Podcast production Jul 22–24, rally day Jul 25. Times Pacific.
