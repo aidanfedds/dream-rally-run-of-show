@@ -131,6 +131,8 @@
   .bp-x{width:20px; height:20px; border-radius:50%; border:none; background:transparent; color:var(--muted); font-size:16px; line-height:1; cursor:pointer; display:grid; place-items:center; padding:0;}
   .bp-x:hover{background:rgba(255,82,54,.16); color:var(--alert);}
   .bp-empty{color:var(--muted); font-size:13px; padding:6px 2px;}
+  .bp-chip[draggable="true"]{cursor:grab;}
+  .bp-chip.dragging{opacity:.45; border-color:var(--lime); cursor:grabbing;}
 
   /* ---------- controls ---------- */
   .controls{display:flex; flex-wrap:wrap; gap:12px 20px; align-items:center; margin-bottom:16px;}
@@ -168,6 +170,10 @@
   .halfline{position:absolute; left:0; right:0; border-top:1px dashed rgba(52,50,45,.4); pointer-events:none;}
   .hourlabel{position:absolute; left:-72px; width:60px; transform:translateY(-50%); text-align:right; font-family:var(--font-mono); font-size:10.5px; color:var(--muted);}
   .tl-hint{position:absolute; top:50%; left:0; right:0; transform:translateY(-50%); text-align:center; color:var(--muted); font-family:var(--font-mono); font-size:12.5px; letter-spacing:.05em; pointer-events:none;} .tl-hint b{color:var(--gray);}
+  .dropline{position:absolute; left:0; right:0; border-top:2px dashed var(--lime); z-index:8; display:none; pointer-events:none;}
+  .dropline.show{display:block;}
+  .dropline span{position:absolute; left:0; top:-15px; font-family:var(--font-mono); font-size:10px; color:#061; background:var(--lime); padding:1px 6px; border-radius:3px; font-weight:600;}
+  .timeline.drop-active{outline:2px dashed rgba(83,244,69,.35); outline-offset:-2px;}
   .nowline{position:absolute; left:0; right:0; border-top:2px solid var(--alert); z-index:6; box-shadow:0 0 12px rgba(255,82,54,.5);}
   .nowline::before{content:"NOW"; position:absolute; left:-56px; top:-8px; font-family:var(--font-mono); font-size:9px; letter-spacing:.14em; color:var(--alert);}
   .evt{position:absolute; border-radius:10px; padding:11px 13px; overflow:hidden; cursor:pointer; background:var(--charcoal); border:1px solid var(--border); border-left-width:3px; color:var(--cream); text-align:left; font:inherit; transition:transform .1s, box-shadow .15s; display:flex; flex-direction:column; gap:4px;}
@@ -590,17 +596,28 @@ function renderBoard(){
   });
 
   const hint=evts.length?'':`<div class="tl-hint">Double-click any time to add a block — or hit <b>+ Add block</b></div>`;
-  document.getElementById('boardBody').innerHTML=`<div class="timeline"><div class="tl-inner" id="tlInner" style="height:${height}px">${grid}${hint}${blocks}</div></div>`;
+  document.getElementById('boardBody').innerHTML=`<div class="timeline"><div class="tl-inner" id="tlInner" style="height:${height}px">${grid}<div class="dropline" id="dropLine"><span></span></div>${hint}${blocks}</div></div>`;
 
   const inner=document.getElementById('tlInner');
+  const yToMins=cy=>{ const rect=inner.getBoundingClientRect(); const m=Math.round((winStart+(cy-rect.top)/PX)/15)*15; return Math.max(winStart, Math.min(winEnd-15, m)); };
   inner.querySelectorAll('.evt').forEach(b=>b.addEventListener('click',ev=>{ev.stopPropagation(); openEditor(b.dataset.edit);}));
   inner.addEventListener('dblclick',ev=>{
     if(ev.target.closest('.evt'))return;
-    const rect=inner.getBoundingClientRect();
-    let mins=Math.round((winStart+(ev.clientY-rect.top)/PX)/15)*15;
-    mins=Math.max(winStart, Math.min(winEnd-15, mins));
-    const end=Math.min(winEnd, mins+60);
+    const mins=yToMins(ev.clientY), end=Math.min(winEnd, mins+60);
     openEditor(null,d,`${pad(mins/60|0)}:${pad(mins%60)}`,`${pad(end/60|0)}:${pad(end%60)}`);
+  });
+  // drag a name pill from On Deck onto the board to place it at a time
+  const dl=inner.querySelector('#dropLine'), tl=inner.parentElement;
+  inner.addEventListener('dragover',ev=>{
+    if(![...ev.dataTransfer.types].includes('text/plain'))return;
+    ev.preventDefault(); ev.dataTransfer.dropEffect='copy';
+    const mins=yToMins(ev.clientY);
+    dl.style.top=((mins-winStart)*PX)+'px'; dl.querySelector('span').textContent=fmt12(pad(mins/60|0)+':'+pad(mins%60)); dl.classList.add('show'); tl.classList.add('drop-active');
+  });
+  inner.addEventListener('dragleave',ev=>{ if(ev.target===inner){ dl.classList.remove('show'); tl.classList.remove('drop-active'); } });
+  inner.addEventListener('drop',ev=>{
+    ev.preventDefault(); dl.classList.remove('show'); tl.classList.remove('drop-active');
+    const name=ev.dataTransfer.getData('text/plain'); if(name) dropNameAt(name, yToMins(ev.clientY));
   });
   applyFilters(); renderNowLine(winStart,winEnd);
 }
@@ -815,8 +832,12 @@ function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 function renderBullpen(){
   const list=document.getElementById('bpList'); if(!list) return;
   if(!state.names.length){ list.innerHTML='<div class="bp-empty">No names yet — jot down anyone you want to slot in later.</div>'; return; }
-  list.innerHTML=state.names.map((n,i)=>`<span class="bp-chip" data-i="${i}" title="Click to schedule ${esc(n)}">${esc(n)}<button class="bp-x" data-del="${i}" aria-label="Remove ${esc(n)}">×</button></span>`).join('');
-  list.querySelectorAll('.bp-chip').forEach(c=>c.addEventListener('click',e=>{ if(e.target.closest('.bp-x'))return; scheduleFromName(state.names[+c.dataset.i]); }));
+  list.innerHTML=state.names.map((n,i)=>`<span class="bp-chip" data-i="${i}" draggable="true" title="Drag onto the board to place at a time, or click to schedule">${esc(n)}<button class="bp-x" data-del="${i}" aria-label="Remove ${esc(n)}">×</button></span>`).join('');
+  list.querySelectorAll('.bp-chip').forEach(c=>{
+    c.addEventListener('click',e=>{ if(e.target.closest('.bp-x'))return; scheduleFromName(state.names[+c.dataset.i]); });
+    c.addEventListener('dragstart',e=>{ e.dataTransfer.setData('text/plain', state.names[+c.dataset.i]); e.dataTransfer.effectAllowed='copy'; c.classList.add('dragging'); });
+    c.addEventListener('dragend',()=>c.classList.remove('dragging'));
+  });
   list.querySelectorAll('.bp-x').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); if(!canEdit()){ openSync(); return; } state.names.splice(+b.dataset.del,1); save(); renderBullpen(); }));
 }
 function addNames(raw){
@@ -826,6 +847,14 @@ function addNames(raw){
   if(added){ save(); renderBullpen(); }
 }
 function scheduleFromName(name){ openEditor(null,state.selectedDay); F.guest.value=name; document.getElementById('dTitle').textContent='Schedule: '+name; }
+function dropNameAt(name, mins){
+  if(!canEdit()){ openSync(); return; }
+  const start=pad(mins/60|0)+':'+pad(mins%60);
+  const em=Math.min(24*60, mins+60), end=pad(em/60|0)+':'+pad(em%60);
+  state.events.push({id:uid(), day:state.selectedDay, start, end, track:'podcast', title:name, guest:name, loc:'', people:[], gear:'', notes:'', status:'hold'});
+  state.names=state.names.filter(n=>n!==name);
+  save(); renderAll();
+}
 document.getElementById('bpAdd').addEventListener('click',()=>{ const el=document.getElementById('bpInput'); addNames(el.value); el.value=''; el.focus(); });
 document.getElementById('bpInput').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); addNames(e.target.value); e.target.value=''; } });
 
