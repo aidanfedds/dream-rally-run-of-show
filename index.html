@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dream Rally 2026 · Run of Show — August Luxury Motorcars</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink:#0C0C0D; --charcoal:#1A1A19; --panel:#131312; --panel-2:#171614;
+    --border:#2A2A26; --hair:#34322d;
+    --gold:#EFA201; --gold-hi:#FFBF36; --lime:#53f445; --slate:#7E8896;
+    --cream:#FDF4E0; --gray:#B9B9B7; --muted:#8A897F;
+    --alert:#FF5236;
+    --font-display:'Oswald',system-ui,sans-serif;
+    --font-body:'DM Sans',system-ui,sans-serif;
+    --font-mono:'Fira Code',ui-monospace,monospace;
+    --px-min:2.3;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0; background:var(--ink); color:var(--cream);
+    font-family:var(--font-body); font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(1200px 600px at 80% -10%, rgba(239,162,1,.08), transparent 60%),
+      radial-gradient(900px 500px at -10% 10%, rgba(83,244,69,.04), transparent 55%);
+    background-attachment:fixed;
+  }
+  a{color:inherit;} ::selection{background:var(--gold); color:#000;}
+  .eyebrow{font-family:var(--font-mono); font-size:11px; letter-spacing:.28em; text-transform:uppercase; color:var(--muted);}
+  .mono{font-family:var(--font-mono);}
+
+  /* ---------- top bar ---------- */
+  .topbar{position:sticky; top:0; z-index:40; display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:12px 22px; background:rgba(12,12,13,.82); backdrop-filter:blur(10px); border-bottom:1px solid var(--border);}
+  .topbar .brand{display:flex; align-items:center; gap:12px;}
+  .brand-mark{width:30px; height:30px; border:1.5px solid var(--gold); border-radius:50%; display:grid; place-items:center; font-family:var(--font-display); font-weight:700; color:var(--gold); font-size:15px;}
+  .brand-name{font-family:var(--font-display); font-weight:600; letter-spacing:.14em; font-size:13px;}
+  .brand-sub{font-family:var(--font-mono); font-size:10px; letter-spacing:.2em; color:var(--muted);}
+  .saved{display:flex; align-items:center; gap:8px; font-family:var(--font-mono); font-size:11px; color:var(--gray); letter-spacing:.1em;}
+  .save-dot{width:8px; height:8px; border-radius:50%; background:var(--lime); box-shadow:0 0 10px var(--lime);}
+
+  .wrap{max-width:1300px; margin:0 auto; padding:0 22px;}
+
+  /* ---------- hero ---------- */
+  .hero{padding:52px 0 26px; border-bottom:1px solid var(--border);}
+  .hero-grid{display:grid; grid-template-columns:1.35fr 1fr; gap:40px; align-items:end;}
+  .hero h1{font-family:var(--font-display); font-weight:700; text-transform:uppercase; font-size:clamp(42px,7.5vw,88px); line-height:.9; margin:14px 0 0;}
+  .hero h1 .thin{font-weight:300; color:var(--gray);} .hero h1 .gold{color:var(--gold);}
+  .hero .lead{max-width:48ch; color:var(--gray); margin-top:18px; font-size:16px;} .hero .lead b{color:var(--cream); font-weight:600;}
+
+  .countdown{background:linear-gradient(180deg,var(--panel),#0e0e0d); border:1px solid var(--hair); border-radius:14px; padding:22px 22px 18px; position:relative; overflow:hidden;}
+  .countdown::before{content:""; position:absolute; inset:0 auto 0 0; width:4px; background:var(--gold);}
+  .countdown .cd-label{display:flex; justify-content:space-between; align-items:baseline;}
+  .countdown .cd-label .to{font-family:var(--font-mono); font-size:10px; letter-spacing:.24em; color:var(--gold-hi);}
+  .cd-clock{display:flex; gap:10px; margin:14px 0 6px;}
+  .cd-unit{flex:1; text-align:center; background:#0c0c0b; border:1px solid var(--border); border-radius:9px; padding:12px 4px;}
+  .cd-unit .num{font-family:var(--font-display); font-weight:600; font-size:clamp(26px,4vw,40px); line-height:1; color:var(--cream);}
+  .cd-unit .u{font-family:var(--font-mono); font-size:9px; letter-spacing:.2em; color:var(--muted); margin-top:6px;}
+  .cd-foot{font-family:var(--font-mono); font-size:11px; color:var(--gray); display:flex; justify-content:space-between; margin-top:8px;}
+
+  .statrow{display:grid; grid-template-columns:repeat(4,1fr); gap:1px; margin-top:28px; background:var(--border); border:1px solid var(--border); border-radius:12px; overflow:hidden;}
+  .stat{background:var(--charcoal); padding:16px 18px;}
+  .stat .n{font-family:var(--font-display); font-weight:600; font-size:30px; line-height:1; color:var(--gold);}
+  .stat .l{font-family:var(--font-mono); font-size:10px; letter-spacing:.16em; color:var(--muted); text-transform:uppercase; margin-top:8px;}
+
+  .howto{display:flex; gap:14px; align-items:flex-start; background:rgba(83,244,69,.05); border:1px solid rgba(83,244,69,.22); border-left:4px solid var(--lime); border-radius:10px; padding:13px 16px; margin-top:22px; font-size:13.5px; color:var(--gray);}
+  .howto .tag{font-family:var(--font-mono); font-size:10px; letter-spacing:.16em; color:var(--lime); text-transform:uppercase; white-space:nowrap; padding-top:2px;}
+  .howto b{color:var(--cream);} .howto kbd{font-family:var(--font-mono); font-size:11px; background:var(--charcoal); border:1px solid var(--border); border-radius:5px; padding:1px 6px; color:var(--cream);}
+
+  /* ---------- sections ---------- */
+  section{padding:42px 0;}
+  .sec-head{display:flex; align-items:flex-end; justify-content:space-between; gap:18px; margin-bottom:20px; flex-wrap:wrap;}
+  .sec-head h2{font-family:var(--font-display); font-weight:600; text-transform:uppercase; font-size:clamp(24px,3.4vw,34px); margin:6px 0 0; letter-spacing:.02em;}
+  .sec-tools{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+
+  /* ---------- month calendar (wider, event chips) ---------- */
+  .month{background:var(--panel); border:1px solid var(--border); border-radius:14px; overflow:hidden;}
+  .dow{display:grid; grid-template-columns:repeat(7,1fr); background:var(--charcoal); border-bottom:1px solid var(--border);}
+  .dow span{padding:11px; text-align:center; font-family:var(--font-mono); font-size:10px; letter-spacing:.2em; color:var(--muted);}
+  .grid-m{display:grid; grid-template-columns:repeat(7,1fr);}
+  .cell{min-height:132px; border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:8px 8px 6px; position:relative; display:flex; flex-direction:column; gap:5px; background:transparent; text-align:left; color:inherit; font:inherit;}
+  .cell:nth-child(7n){border-right:none;}
+  .cell.empty{background:repeating-linear-gradient(135deg,transparent,transparent 8px,rgba(255,255,255,.014) 8px,rgba(255,255,255,.014) 16px);}
+  .cell.day{cursor:pointer;}
+  .cell.day:hover,.cell.day:focus-visible{background:rgba(255,255,255,.03);}
+  .cell-top{display:flex; align-items:center; justify-content:space-between;}
+  .cell .dnum{font-family:var(--font-display); font-weight:500; font-size:16px; color:var(--gray);}
+  .cell.rallyweek .dnum{color:var(--cream);}
+  .cell.event .dnum{color:var(--gold);}
+  .cell.today{outline:1.5px solid var(--lime); outline-offset:-1.5px;} .cell.today .dnum{color:var(--lime);}
+  .cell.selected{background:rgba(239,162,1,.09); outline:1.5px solid var(--gold); outline-offset:-1.5px; z-index:2;}
+  .cell.rallyweek{background:linear-gradient(180deg,rgba(239,162,1,.045),transparent);}
+  .cell.event{background:linear-gradient(180deg,rgba(239,162,1,.12),transparent);}
+  .badge-day{font-family:var(--font-display); font-weight:600; text-transform:uppercase; font-size:8.5px; letter-spacing:.08em; padding:2px 6px; border-radius:4px;}
+  .badge-day.rally{background:rgba(239,162,1,.2); color:var(--gold-hi);}
+  .cell .qadd{opacity:0; width:20px; height:20px; border-radius:5px; border:1px solid var(--border); background:var(--charcoal); color:var(--gray); font-size:14px; line-height:1; cursor:pointer; display:grid; place-items:center; transition:opacity .12s;}
+  .cell.day:hover .qadd,.cell.day:focus-within .qadd{opacity:1;} .cell .qadd:hover{color:var(--gold); border-color:var(--gold);}
+  .mchips{display:flex; flex-direction:column; gap:3px; overflow:hidden;}
+  .mchip{display:flex; gap:5px; align-items:baseline; font-size:10.5px; line-height:1.25; padding:2px 5px; border-radius:4px; background:var(--charcoal); border-left:2px solid var(--slate); cursor:pointer; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;}
+  .mchip:hover{background:#232320;}
+  .mchip .mt{font-family:var(--font-mono); font-size:9px; color:var(--gray); flex:none;}
+  .mchip .mn{color:var(--cream); overflow:hidden; text-overflow:ellipsis;}
+  .mchip[data-track="podcast"]{border-left-color:var(--lime);} .mchip[data-track="rally"]{border-left-color:var(--gold);} .mchip[data-track="logistics"]{border-left-color:var(--slate);}
+  .mchip.locked .mn::after{content:" 🔒"; font-size:8px;}
+  .mmore{font-family:var(--font-mono); font-size:9px; color:var(--muted); padding-left:5px;}
+  .mnote{font-size:10px; color:var(--muted);}
+
+  /* ---------- controls ---------- */
+  .controls{display:flex; flex-wrap:wrap; gap:12px 20px; align-items:center; margin-bottom:16px;}
+  .daytabs{display:flex; gap:8px; flex-wrap:wrap;}
+  .daytab{background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:9px 14px; cursor:pointer; color:var(--gray); font:inherit; text-align:left; min-width:112px;}
+  .daytab:hover{border-color:var(--slate);}
+  .daytab .dt-dow{font-family:var(--font-mono); font-size:10px; letter-spacing:.18em; color:var(--muted);}
+  .daytab .dt-day{font-family:var(--font-display); font-weight:600; font-size:19px; color:var(--cream); line-height:1.1;}
+  .daytab .dt-role{font-size:10.5px; color:var(--muted); margin-top:2px;}
+  .daytab[aria-selected="true"]{border-color:var(--gold); background:linear-gradient(180deg,rgba(239,162,1,.12),transparent);}
+  .daytab[aria-selected="true"] .dt-dow{color:var(--gold-hi);}
+  .filters{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-left:auto;}
+  .fchip{display:inline-flex; align-items:center; gap:7px; font-family:var(--font-mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; padding:7px 11px; border-radius:20px; border:1px solid var(--border); background:var(--panel); color:var(--gray); cursor:pointer; user-select:none;}
+  .fchip .sw{width:9px; height:9px; border-radius:50%;} .fchip[aria-pressed="false"]{opacity:.4; text-decoration:line-through;}
+
+  /* ---------- buttons ---------- */
+  .btn{display:inline-flex; align-items:center; gap:7px; font-family:var(--font-mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; padding:9px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--gray); cursor:pointer;}
+  .btn:hover{border-color:var(--gold); color:var(--cream);}
+  .btn-primary{background:var(--gold); color:#141200; border-color:var(--gold); font-weight:600;}
+  .btn-primary:hover{background:var(--gold-hi); color:#141200;}
+  .btn-danger{border-color:rgba(255,82,54,.4); color:var(--alert);} .btn-danger:hover{background:rgba(255,82,54,.12); border-color:var(--alert); color:var(--alert);}
+
+  /* ---------- board / day view ---------- */
+  .day-meta{display:flex; gap:16px; flex-wrap:wrap; align-items:center; padding:14px 18px; background:var(--panel); border:1px solid var(--border); border-radius:12px; margin-bottom:14px;}
+  .day-meta .dm-title{font-family:var(--font-display); font-weight:600; text-transform:uppercase; font-size:22px;}
+  .day-meta .dm-title small{display:block; font-family:var(--font-mono); font-size:10px; letter-spacing:.2em; color:var(--gold-hi); text-transform:uppercase;}
+  .day-meta .dm-item{font-size:12.5px; color:var(--gray);} .day-meta .dm-item b{color:var(--cream); font-family:var(--font-mono);}
+  .day-meta .dm-add{margin-left:auto;}
+
+  .timeline{position:relative; background:var(--panel); border:1px solid var(--border); border-radius:14px; overflow:hidden; padding:16px 18px 14px 84px;}
+  .tl-inner{position:relative;}
+  .hourband{position:absolute; left:0; right:0; pointer-events:none;}
+  .hourband.alt{background:rgba(255,255,255,.02);}
+  .hourline{position:absolute; left:0; right:0; border-top:1px solid var(--hair); pointer-events:none;}
+  .halfline{position:absolute; left:0; right:0; border-top:1px dashed rgba(52,50,45,.4); pointer-events:none;}
+  .hourlabel{position:absolute; left:-72px; width:60px; transform:translateY(-50%); text-align:right; font-family:var(--font-mono); font-size:10.5px; color:var(--muted);}
+  .tl-hint{position:absolute; top:50%; left:0; right:0; transform:translateY(-50%); text-align:center; color:var(--muted); font-family:var(--font-mono); font-size:12.5px; letter-spacing:.05em; pointer-events:none;} .tl-hint b{color:var(--gray);}
+  .nowline{position:absolute; left:0; right:0; border-top:2px solid var(--alert); z-index:6; box-shadow:0 0 12px rgba(255,82,54,.5);}
+  .nowline::before{content:"NOW"; position:absolute; left:-56px; top:-8px; font-family:var(--font-mono); font-size:9px; letter-spacing:.14em; color:var(--alert);}
+  .evt{position:absolute; border-radius:10px; padding:11px 13px; overflow:hidden; cursor:pointer; background:var(--charcoal); border:1px solid var(--border); border-left-width:3px; color:var(--cream); text-align:left; font:inherit; transition:transform .1s, box-shadow .15s; display:flex; flex-direction:column; gap:4px;}
+  .evt:hover,.evt:focus-visible{transform:translateY(-1px); box-shadow:0 8px 26px rgba(0,0,0,.5); z-index:5;}
+  .evt.hide{display:none;}
+  .evt .e-time{font-family:var(--font-mono); font-size:10px; color:var(--gray);}
+  .evt .e-title{font-family:var(--font-display); font-weight:600; text-transform:uppercase; font-size:15px; line-height:1.06;}
+  .evt .e-sub{font-size:11px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .evt .e-flags{display:flex; gap:5px; flex-wrap:wrap;}
+  .miniflag{font-family:var(--font-mono); font-size:8.5px; letter-spacing:.1em; text-transform:uppercase; padding:1px 5px; border-radius:3px; border:1px solid currentColor;}
+  .evt[data-track="podcast"]{border-left-color:var(--lime);} .evt[data-track="rally"]{border-left-color:var(--gold);} .evt[data-track="logistics"]{border-left-color:var(--slate);}
+  .evt[data-track="podcast"] .e-title{color:#eafff0;}
+  .evt.locked{box-shadow:inset 0 0 0 1px rgba(253,244,224,.16);}
+  .evt.locked::after{content:"🔒"; position:absolute; top:7px; right:8px; font-size:10px; opacity:.7;}
+  .lock-lime{color:var(--lime);} .lock-gold{color:var(--gold-hi);} .lock-slate{color:var(--slate);}
+  .evt.compact{padding:5px 10px;} .evt.compact .e-sub,.evt.compact .e-flags{display:none;}
+
+  .empty-day{padding:52px 26px; text-align:center; background:var(--panel); border:1px dashed var(--border); border-radius:14px;}
+  .empty-day .big{font-family:var(--font-display); font-weight:600; text-transform:uppercase; font-size:22px; color:var(--gray); letter-spacing:.03em;}
+  .empty-day p{color:var(--muted); max-width:44ch; margin:8px auto 20px; font-size:13.5px;}
+
+  /* ---------- podcast line-up ---------- */
+  .lineup{background:var(--panel); border:1px solid var(--border); border-radius:14px; overflow:hidden;}
+  .lu-row{display:grid; grid-template-columns:150px 1fr 1fr 130px; gap:16px; padding:14px 18px; border-bottom:1px solid var(--border); align-items:center; cursor:pointer;}
+  .lu-row:last-child{border-bottom:none;} .lu-row:hover{background:var(--charcoal);}
+  .lu-row.head{background:var(--charcoal); cursor:default; font-family:var(--font-mono); font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted);}
+  .lu-when{font-family:var(--font-mono); font-size:12px; color:var(--gold-hi);}
+  .lu-title{font-family:var(--font-display); font-weight:600; text-transform:uppercase; font-size:15px; color:#eafff0;}
+  .lu-guest{color:var(--cream); font-size:13.5px;} .lu-guest.tbd{color:var(--muted); font-style:italic;}
+  .lu-status{justify-self:start;}
+  .pill-status{font-family:var(--font-mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; padding:4px 10px; border-radius:20px;}
+  .pill-status.locked{background:rgba(83,244,69,.14); color:var(--lime);}
+  .pill-status.hold{background:rgba(239,162,1,.14); color:var(--gold-hi);}
+  .pill-status.tentative{background:rgba(126,136,150,.16); color:var(--slate);}
+  .lu-empty{padding:40px 20px; text-align:center; color:var(--muted); font-size:13.5px;}
+
+  /* ---------- watch ---------- */
+  .watch{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px 18px; margin-top:14px;}
+  .watch h3{font-family:var(--font-display); font-weight:600; text-transform:uppercase; font-size:15px; letter-spacing:.08em; margin:0 0 10px; display:flex; align-items:center; gap:9px;}
+  .watch h3 .badge{font-family:var(--font-mono); font-size:10px; padding:2px 7px; border-radius:20px; letter-spacing:.1em;}
+  .badge.ok{background:rgba(83,244,69,.14); color:var(--lime);} .badge.warn{background:rgba(255,82,54,.16); color:var(--alert);}
+  .wlist{display:flex; flex-direction:column; gap:8px; margin:0; padding:0; list-style:none;}
+  .wlist li{font-size:13px; color:var(--gray); display:flex; gap:10px; align-items:flex-start;}
+  .wlist li .wt{font-family:var(--font-mono); font-size:11px; color:var(--gold-hi); white-space:nowrap; padding-top:1px;}
+
+  /* ---------- roster ---------- */
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+  .card{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px;}
+  .card h3{font-family:var(--font-display); font-weight:600; text-transform:uppercase; font-size:15px; letter-spacing:.08em; margin:0 0 14px;}
+  .legend-row{display:flex; align-items:center; gap:12px; padding:9px 0; border-bottom:1px solid var(--border); font-size:13px;}
+  .legend-row:last-child{border-bottom:none;} .legend-row .sw{width:14px; height:14px; border-radius:4px; flex:none;} .legend-row .desc{color:var(--muted); font-size:12px; margin-left:auto; text-align:right;}
+
+  /* ---------- drawer / editor form ---------- */
+  .backdrop{position:fixed; inset:0; background:rgba(0,0,0,.6); backdrop-filter:blur(2px); opacity:0; pointer-events:none; transition:opacity .2s; z-index:60;}
+  .backdrop.open{opacity:1; pointer-events:auto;}
+  .drawer{position:fixed; top:0; right:0; height:100%; width:min(460px,94vw); z-index:70; background:var(--panel-2); border-left:1px solid var(--hair); transform:translateX(102%); transition:transform .28s cubic-bezier(.22,1,.36,1); overflow-y:auto; display:flex; flex-direction:column;}
+  .drawer.open{transform:translateX(0);}
+  .drawer-head{position:sticky; top:0; background:var(--panel-2); border-bottom:1px solid var(--border); padding:20px 22px 16px; z-index:2;}
+  .drawer .d-kicker{font-family:var(--font-mono); font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--muted);}
+  .drawer h3{font-family:var(--font-display); font-weight:700; text-transform:uppercase; font-size:24px; margin:6px 0 0;}
+  .drawer-close{position:absolute; top:18px; right:18px; width:34px; height:34px; border-radius:8px; background:var(--charcoal); border:1px solid var(--border); color:var(--gray); font-size:18px; cursor:pointer; display:grid; place-items:center;}
+  .drawer-close:hover{color:var(--cream); border-color:var(--slate);}
+  .d-body{padding:18px 22px; flex:1;}
+  .frow{margin-bottom:14px;} .frow2{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;}
+  label{display:block; font-family:var(--font-mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-bottom:6px;}
+  input,select,textarea{width:100%; background:#0f0f0e; border:1px solid var(--border); border-radius:8px; color:var(--cream); font-family:var(--font-body); font-size:14px; padding:10px 11px; color-scheme:dark;}
+  input:focus,select,textarea:focus{outline:2px solid var(--gold); outline-offset:0; border-color:var(--gold);}
+  textarea{min-height:74px; resize:vertical;} select{appearance:none; background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%); background-position:calc(100% - 16px) 17px,calc(100% - 11px) 17px; background-size:5px 5px,5px 5px; background-repeat:no-repeat;}
+  .seg{display:flex; gap:8px;} .seg label{margin:0;} .seg-opt{flex:1;}
+  .seg-opt input{position:absolute; opacity:0; pointer-events:none;}
+  .seg-opt span{display:block; text-align:center; font-family:var(--font-mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; padding:9px 6px; border:1px solid var(--border); border-radius:8px; color:var(--gray); cursor:pointer;}
+  .seg-opt input:checked + span{border-color:var(--gold); background:rgba(239,162,1,.14); color:var(--gold-hi);}
+  .form-err{color:var(--alert); font-size:12px; font-family:var(--font-mono); min-height:16px; margin-bottom:6px;}
+  .drawer-foot{position:sticky; bottom:0; background:var(--panel-2); border-top:1px solid var(--border); padding:14px 22px; display:flex; gap:10px; align-items:center;}
+  .drawer-foot .spacer{margin-left:auto;}
+
+  footer{border-top:1px solid var(--border); padding:30px 0 60px; color:var(--muted); font-size:12px;}
+  footer .f-grid{display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap; align-items:center;}
+  :focus-visible{outline:2px solid var(--gold); outline-offset:2px;}
+
+  @media (prefers-reduced-motion:no-preference){ .save-dot{animation:pulse 2.4s ease-in-out infinite;} }
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+  @media (max-width:880px){
+    .hero-grid{grid-template-columns:1fr; gap:26px;} .statrow{grid-template-columns:repeat(2,1fr);}
+    .grid2{grid-template-columns:1fr;} .cell{min-height:96px;} .filters{margin-left:0; width:100%;}
+    .lu-row{grid-template-columns:1fr 1fr; gap:8px;} .lu-row .lu-status,.lu-row.head .lu-status{grid-column:1/-1;}
+    .lu-row.head{display:none;}
+  }
+  @media (max-width:560px){ .cell{min-height:64px; padding:5px;} .mchips,.mnote{display:none;} .daytab{min-width:0; flex:1;} }
+  @media print{ .topbar,.controls,.filters,.sec-tools,.backdrop,.drawer,.howto,.qadd,.dm-add{display:none !important;} .timeline,.month,.card,.watch,.lineup,.day-meta{break-inside:avoid;} body{background:#fff; color:#111;} }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark">A</div>
+    <div><div class="brand-name">AUGUST LUXURY MOTORCARS</div><div class="brand-sub">RACE CONTROL · PRODUCTION OPS</div></div>
+  </div>
+  <div class="saved"><span class="save-dot"></span><span id="saveStatus">Saved to this browser</span></div>
+</header>
+
+<div class="wrap">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-grid">
+      <div>
+        <div class="eyebrow">Okanagan Dream Rally · July 2026</div>
+        <h1>Dream Rally<br><span class="thin">Run of</span> <span class="gold">Show</span></h1>
+        <p class="lead">The team's single source of truth for the week. Click a day to open it, then build the schedule block by block — call times, guests, crew, gear. Everything you add shows on the calendar and saves automatically.</p>
+      </div>
+      <div class="countdown">
+        <div class="cd-label"><span class="to">T–MINUS TO</span><span class="mono" style="font-size:11px;color:var(--gold)">LIGHTS OUT · SAT 25</span></div>
+        <div class="cd-clock">
+          <div class="cd-unit"><div class="num" id="cdD">00</div><div class="u">DAYS</div></div>
+          <div class="cd-unit"><div class="num" id="cdH">00</div><div class="u">HRS</div></div>
+          <div class="cd-unit"><div class="num" id="cdM">00</div><div class="u">MIN</div></div>
+          <div class="cd-unit"><div class="num" id="cdS">00</div><div class="u">SEC</div></div>
+        </div>
+        <div class="cd-foot"><span>Rally roll-out · 09:00 PT</span><span id="cdNow">—</span></div>
+      </div>
+    </div>
+
+    <div class="statrow">
+      <div class="stat"><div class="n" id="stDays">0</div><div class="l">Days Scheduled</div></div>
+      <div class="stat"><div class="n" id="stEps">0</div><div class="l">Podcast Episodes</div></div>
+      <div class="stat"><div class="n" id="stLocked">0</div><div class="l">Locked Blocks</div></div>
+      <div class="stat"><div class="n">$4.7M<span style="font-size:16px">+</span></div><div class="l">Raised To Date</div></div>
+    </div>
+
+    <div class="howto">
+      <span class="tag">How to</span>
+      <div>Click any day on the calendar to open it, then hit <b>+ Add block</b> to schedule. Click a block to edit or delete it. Only the <b>Reklaws</b> (land 11 AM Fri, taping 1–2 PM Fri) are pre-filled — everything else is yours to build. Use <kbd>Export</kbd> to hand the schedule to the team or send it to me to publish a live link.</div>
+    </div>
+  </section>
+
+  <!-- MONTH -->
+  <section id="month">
+    <div class="sec-head">
+      <div><div class="eyebrow">01 · The Month</div><h2>July 2026</h2></div>
+      <div class="sec-tools">
+        <button class="btn" id="expBtn">⭳ Export</button>
+        <button class="btn" id="impBtn">⭱ Import</button>
+        <input type="file" id="impFile" accept="application/json" hidden />
+      </div>
+    </div>
+    <div class="month">
+      <div class="dow"><span>SUN</span><span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span></div>
+      <div class="grid-m" id="monthGrid"></div>
+    </div>
+  </section>
+
+  <!-- BOARD -->
+  <section id="board">
+    <div class="sec-head"><div><div class="eyebrow">02 · The Day</div><h2>Day Board</h2></div></div>
+    <div class="controls">
+      <div class="daytabs" id="dayTabs" role="tablist" aria-label="Key days"></div>
+      <div class="filters" id="filters" aria-label="Filter tracks">
+        <span class="mono" style="font-size:10px;color:var(--muted);letter-spacing:.14em">TRACKS</span>
+        <button class="fchip" data-track="podcast" aria-pressed="true"><span class="sw" style="background:var(--lime)"></span>Podcast</button>
+        <button class="fchip" data-track="rally" aria-pressed="true"><span class="sw" style="background:var(--gold)"></span>Rally</button>
+        <button class="fchip" data-track="logistics" aria-pressed="true"><span class="sw" style="background:var(--slate)"></span>Logistics</button>
+      </div>
+    </div>
+    <div id="dayMeta"></div>
+    <div id="boardBody"></div>
+    <div class="watch" id="watch"></div>
+  </section>
+
+  <!-- PODCAST LINE-UP -->
+  <section id="lineup">
+    <div class="sec-head">
+      <div><div class="eyebrow">03 · The Podcast</div><h2>August After Dark · Line-Up</h2></div>
+      <div class="sec-tools"><button class="btn btn-primary" id="addEpBtn">+ Add episode</button></div>
+    </div>
+    <div class="lineup" id="lineupBody"></div>
+  </section>
+
+  <!-- ROSTER + LEGEND -->
+  <section id="roster">
+    <div class="sec-head"><div><div class="eyebrow">04 · Reference</div><h2>Legend &amp; Kit</h2></div></div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Track Legend</h3>
+        <div class="legend-row"><span class="sw" style="background:var(--lime)"></span><span>Podcast — August After Dark tapings</span><span class="desc">Showroom studio</span></div>
+        <div class="legend-row"><span class="sw" style="background:var(--gold)"></span><span>Dream Rally — event &amp; on-course</span><span class="desc">Grid / route</span></div>
+        <div class="legend-row"><span class="sw" style="background:var(--slate)"></span><span>Logistics — crew, transport, gear</span><span class="desc">Support</span></div>
+        <div class="legend-row"><span class="sw" style="background:transparent;box-shadow:inset 0 0 0 1px rgba(253,244,224,.5)"></span><span>🔒 Locked — do not move</span><span class="desc">Anchored</span></div>
+        <div class="legend-row"><span class="sw" style="background:var(--alert)"></span><span>NOW line · conflict alerts</span><span class="desc">Live</span></div>
+      </div>
+      <div class="card">
+        <h3>Camera Package</h3>
+        <div class="legend-row"><span class="mono" style="color:var(--gold-hi)">A · a7S3</span><span>Matt / host angle</span></div>
+        <div class="legend-row"><span class="mono" style="color:var(--gold-hi)">B · FX3</span><span>Wide two-shot · S-Log3</span></div>
+        <div class="legend-row"><span class="mono" style="color:var(--gold-hi)">C · FX30</span><span>Guest angle</span><span class="desc">Match-LUT in post</span></div>
+        <p style="color:var(--muted); font-size:12.5px; margin:14px 0 0">Status key — <b style="color:var(--lime)">Locked</b>: confirmed, don't move · <b style="color:var(--gold-hi)">Hold</b>: planned, likely · <b style="color:var(--slate)">Tentative</b>: needs input.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="f-grid">
+      <div>August Luxury Motorcars · Okanagan Dream Rally 2026 · Run of Show<br>Times Pacific · Built for Matt August by Aidan Feddersen · Auto-saves to your browser</div>
+      <div style="display:flex;gap:10px"><button class="btn" onclick="window.print()">⎙ Print</button><button class="btn" onclick="document.getElementById('board').scrollIntoView()">↑ Board</button></div>
+    </div>
+  </footer>
+</div>
+
+<!-- EDITOR DRAWER -->
+<div class="backdrop" id="backdrop"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dTitle" aria-hidden="true">
+  <div class="drawer-head">
+    <button class="drawer-close" id="drawerClose" aria-label="Close">✕</button>
+    <div class="d-kicker" id="dKicker">New block</div>
+    <h3 id="dTitle">Schedule a block</h3>
+  </div>
+  <form class="d-body" id="evForm" novalidate>
+    <input type="hidden" name="id" id="fId" />
+    <div class="frow"><label for="fTitle">Title *</label><input id="fTitle" name="title" placeholder="e.g. EP 02 Taping · Crew Call · Car Staging" required /></div>
+    <div class="frow2">
+      <div><label for="fDay">Day (July)</label><select id="fDay" name="day"></select></div>
+      <div><label for="fTrack">Track</label><select id="fTrack" name="track">
+        <option value="podcast">Podcast</option><option value="rally">Rally</option><option value="logistics">Logistics</option>
+      </select></div>
+    </div>
+    <div class="frow2">
+      <div><label for="fStart">Start *</label><input id="fStart" type="time" name="start" required /></div>
+      <div><label for="fEnd">End *</label><input id="fEnd" type="time" name="end" required /></div>
+    </div>
+    <div class="frow"><label for="fGuest">Guest / Talent</label><input id="fGuest" name="guest" placeholder="Podcast guest or arriving talent" /></div>
+    <div class="frow"><label for="fLoc">Location</label><input id="fLoc" name="loc" placeholder="Showroom studio · YLW airport · Grid…" /></div>
+    <div class="frow"><label for="fPeople">Crew / People <span style="text-transform:none;letter-spacing:0">(comma-separated)</span></label><input id="fPeople" name="people" placeholder="Matt August, Aidan Feddersen, Camera Op 2" /></div>
+    <div class="frow"><label for="fGear">Camera / Gear</label><input id="fGear" name="gear" placeholder="3-cam · a7S3 / FX3 / FX30 · lav + shotgun" /></div>
+    <div class="frow"><label for="fNotes">Notes</label><textarea id="fNotes" name="notes" placeholder="Anything the team needs to know for this block."></textarea></div>
+    <div class="frow"><label>Status</label>
+      <div class="seg" id="fStatus">
+        <label class="seg-opt"><input type="radio" name="status" value="locked" /><span>🔒 Locked</span></label>
+        <label class="seg-opt"><input type="radio" name="status" value="hold" checked /><span>◆ Hold</span></label>
+        <label class="seg-opt"><input type="radio" name="status" value="tentative" /><span>○ Tentative</span></label>
+      </div>
+    </div>
+    <div class="form-err" id="formErr"></div>
+  </form>
+  <div class="drawer-foot">
+    <button class="btn btn-danger" id="delBtn" style="display:none">Delete</button>
+    <span class="spacer"></span>
+    <button class="btn" id="cancelBtn">Cancel</button>
+    <button class="btn btn-primary" id="saveBtn">Save block</button>
+  </div>
+</aside>
+
+<script>
+/* ============================================================
+   DREAM RALLY · RUN OF SHOW — editable, auto-saving planner
+   All schedule data lives in state.events and persists to
+   localStorage. Export/Import moves it between people/devices.
+   ============================================================ */
+const YEAR=2026, MONTH=6; // July
+const STORAGE_KEY='dreamRally.v2';
+const WEEKDAYS=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+const TRACK_META={podcast:{label:'Podcast · AAD',color:'var(--lime)'},rally:{label:'Dream Rally',color:'var(--gold)'},logistics:{label:'Logistics · Crew',color:'var(--slate)'}};
+const DAY_ROLES={22:'Production Day 1',23:'Production Day 2',24:'Prod. Day 3 · Reklaws · Rally Eve',25:'★ Okanagan Dream Rally'};
+const KEY_DAYS=[22,23,24,25];
+
+/* ---- the only pre-filled facts ---- */
+const SEED_EVENTS=[
+  {id:'reklaws-land', day:24, start:'11:00', end:'11:45', track:'logistics', title:'The Reklaws Land · YLW', guest:'The Reklaws — Jenna & Stuart Walker', loc:'Kelowna Int’l Airport (YLW)', people:['Runner / Driver'], gear:'', notes:'Flight lands 11:00. Meet at arrivals with a sign, load gear, transfer to the showroom.', status:'locked'},
+  {id:'reklaws-ep', day:24, start:'13:00', end:'14:00', track:'podcast', title:'Podcast · The Reklaws', guest:'The Reklaws — Jenna & Stuart Walker', loc:'Showroom studio', people:['Matt August'], gear:'3-cam · a7S3 / FX3 / FX30', notes:'Locked anchor taping — everything Friday flexes around this hour.', status:'locked'},
+];
+
+/* ---- state ---- */
+let state={events:[], selectedDay:24};
+function clone(o){return JSON.parse(JSON.stringify(o));}
+function uid(){return 'e'+Math.random().toString(36).slice(2,8)+Date.now().toString(36).slice(-4);}
+function load(){
+  try{const raw=localStorage.getItem(STORAGE_KEY); if(raw){const d=JSON.parse(raw); if(Array.isArray(d.events)){state.events=d.events; state.selectedDay=d.selectedDay||24; return;}}}catch(e){}
+  state.events=clone(SEED_EVENTS);
+}
+let saveTimer=null;
+function save(){
+  try{localStorage.setItem(STORAGE_KEY, JSON.stringify({events:state.events, selectedDay:state.selectedDay}));}catch(e){}
+  const s=document.getElementById('saveStatus'); s.textContent='Saved ✓';
+  clearTimeout(saveTimer); saveTimer=setTimeout(()=>{s.textContent='Saved to this browser';},1400);
+}
+
+/* ---- helpers ---- */
+const toMin=t=>{const[h,m]=t.split(':').map(Number);return h*60+m;};
+const pad=n=>String(n).padStart(2,'0');
+const fmt12=t=>{let[h,m]=t.split(':').map(Number);const ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+pad(m)+' '+ap;};
+const fmtShort=t=>{let[h,m]=t.split(':').map(Number);const ap=h>=12?'p':'a';h=h%12||12;return (m?h+':'+pad(m):h)+ap;};
+const dowOf=d=>WEEKDAYS[new Date(YEAR,MONTH,d).getDay()];
+const daysInMonth=()=>new Date(YEAR,MONTH+1,0).getDate();
+const eventsFor=d=>state.events.filter(e=>e.day===d).sort((a,b)=>toMin(a.start)-toMin(b.start)||toMin(a.end)-toMin(b.end));
+const PX=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--px-min'))||1.6;
+
+/* ========== MONTH ========== */
+function renderMonth(){
+  const grid=document.getElementById('monthGrid');
+  const first=new Date(YEAR,MONTH,1).getDay(), dim=daysInMonth();
+  let html='';
+  for(let i=0;i<first;i++) html+='<div class="cell empty"></div>';
+  for(let d=1;d<=dim;d++){
+    const evs=eventsFor(d), isWeek=d>=22&&d<=25, isEvent=d===25;
+    const isToday=(new Date(YEAR,MONTH,d)).toDateString()===new Date().toDateString();
+    let cls='cell day'; if(isWeek)cls+=' rallyweek'; if(isEvent&&evs.length)cls+=' event'; if(isToday)cls+=' today'; if(d===state.selectedDay)cls+=' selected';
+    let chips='';
+    evs.slice(0,3).forEach(e=>{ chips+=`<div class="mchip ${e.status==='locked'?'locked':''}" data-track="${e.track}" data-edit="${e.id}" role="button" tabindex="0" title="${e.title}"><span class="mt">${fmtShort(e.start)}</span><span class="mn">${e.title}</span></div>`; });
+    if(evs.length>3) chips+=`<div class="mmore">+${evs.length-3} more</div>`;
+    html+=`<div class="${cls}" data-day="${d}" role="button" tabindex="0" aria-label="July ${d}, ${evs.length} blocks">
+      <div class="cell-top"><span class="dnum">${d}</span>${isEvent?'<span class="badge-day rally">Rally</span>':`<button class="qadd" data-add="${d}" aria-label="Add block to July ${d}" tabindex="-1">+</button>`}</div>
+      <div class="mchips">${chips}</div>
+    </div>`;
+  }
+  grid.innerHTML=html;
+  grid.querySelectorAll('.cell.day').forEach(c=>{
+    c.addEventListener('click',e=>{ if(e.target.closest('[data-edit]')||e.target.closest('[data-add]'))return; selectDay(+c.dataset.day,true); });
+    c.addEventListener('keydown',e=>{ if((e.key==='Enter'||e.key===' ')&&e.target===c){e.preventDefault(); selectDay(+c.dataset.day,true);} });
+  });
+  grid.querySelectorAll('[data-edit]').forEach(ch=>{
+    ch.addEventListener('click',e=>{e.stopPropagation(); openEditor(ch.dataset.edit);});
+    ch.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault(); e.stopPropagation(); openEditor(ch.dataset.edit);}});
+  });
+  grid.querySelectorAll('[data-add]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation(); openEditor(null,+b.dataset.add);}));
+}
+
+/* ========== DAY TABS ========== */
+function renderTabs(){
+  document.getElementById('dayTabs').innerHTML=KEY_DAYS.map(d=>`
+    <button class="daytab" role="tab" data-day="${d}" aria-selected="${d===state.selectedDay}">
+      <div class="dt-dow">${dowOf(d)} · JUL</div><div class="dt-day">${d}</div>
+      <div class="dt-role">${DAY_ROLES[d].replace('★ ','')}</div>
+    </button>`).join('');
+  document.querySelectorAll('.daytab').forEach(b=>b.addEventListener('click',()=>selectDay(+b.dataset.day,true)));
+}
+
+/* ========== LANE PACKING ========== */
+function packLanes(evts){
+  const sorted=[...evts].sort((a,b)=>toMin(a.start)-toMin(b.start)||toMin(a.end)-toMin(b.end));
+  const clusters=[]; let cur=[], curEnd=-1;
+  for(const e of sorted){ if(cur.length&&toMin(e.start)<curEnd){cur.push(e); curEnd=Math.max(curEnd,toMin(e.end));} else {if(cur.length)clusters.push(cur); cur=[e]; curEnd=toMin(e.end);} }
+  if(cur.length)clusters.push(cur);
+  const out=[];
+  for(const cl of clusters){ const laneEnds=[]; for(const e of cl){ let lane=laneEnds.findIndex(end=>end<=toMin(e.start)); if(lane===-1){lane=laneEnds.length; laneEnds.push(0);} laneEnds[lane]=toMin(e.end); e._lane=lane; } cl.forEach(e=>e._lanes=laneEnds.length); out.push(...cl); }
+  return out;
+}
+
+/* ========== BOARD ========== */
+function fmtHour(h){const ap=h>=12?'PM':'AM';return (h%12||12)+' '+ap;}
+function renderBoard(){
+  const d=state.selectedDay, evts=eventsFor(d);
+  const role=DAY_ROLES[d]||'Open day';
+  const call=evts[0], wrapE=evts.slice().sort((a,b)=>toMin(b.end)-toMin(a.end))[0];
+  const eps=evts.filter(e=>e.track==='podcast').length, locked=evts.filter(e=>e.status==='locked').length;
+  document.getElementById('dayMeta').innerHTML=`<div class="day-meta">
+    <div class="dm-title"><small>${dowOf(d)} · July ${d}</small>${role.replace('★ ','')}</div>
+    <div class="dm-item">Call <b>${call?fmt12(call.start):'—'}</b></div>
+    <div class="dm-item">Wrap <b>${wrapE?fmt12(wrapE.end):'—'}</b></div>
+    <div class="dm-item">Blocks <b>${evts.length}</b></div>
+    <div class="dm-item">Podcast <b>${eps}</b></div>
+    <div class="dm-item">Locked <b>${locked}</b></div>
+    <div class="dm-add"><button class="btn btn-primary" id="addBlockBtn">+ Add block</button></div>
+  </div>`;
+  document.getElementById('addBlockBtn').addEventListener('click',()=>openEditor(null,d));
+
+  // A calm, readable day: at least an 8-hour window (default 8 AM–4 PM), padded and
+  // snapped to the hour, expanding only if blocks run earlier or later.
+  const DEF_START=8*60, MIN_SPAN=8*60;
+  let earliest=DEF_START, latest=DEF_START+MIN_SPAN;
+  if(evts.length){ earliest=Math.min(...evts.map(e=>toMin(e.start))); latest=Math.max(...evts.map(e=>toMin(e.end))); }
+  const winStart=Math.max(0, Math.min(DEF_START, Math.floor((earliest-30)/60)*60));
+  const winEnd=Math.min(24*60, Math.max(winStart+MIN_SPAN, Math.ceil((latest+30)/60)*60));
+  const height=(winEnd-winStart)*PX;
+
+  let grid='';
+  for(let h=winStart/60; h<winEnd/60; h++){
+    const top=(h*60-winStart)*PX;
+    grid+=`<div class="hourband ${h%2?'':'alt'}" style="top:${top}px;height:${60*PX}px"></div>`;
+    grid+=`<div class="hourline" style="top:${top}px"></div><div class="hourlabel" style="top:${top}px">${fmtHour(h)}</div>`;
+    grid+=`<div class="halfline" style="top:${top+30*PX}px"></div>`;
+  }
+  grid+=`<div class="hourline" style="top:${height}px"></div>`;
+
+  let blocks='';
+  packLanes(evts).forEach(e=>{
+    const top=(toMin(e.start)-winStart)*PX, h=Math.max((toMin(e.end)-toMin(e.start))*PX-4,44);
+    const w=100/e._lanes, left=e._lane*w, compact=h<72?'compact':'';
+    const lock=e.track==='podcast'?'lime':e.track==='rally'?'gold':'slate';
+    const sub=e.guest?`<span class="e-sub">${e.guest}</span>`:(e.loc?`<span class="e-sub">${e.loc}</span>`:'');
+    const flag=e.status==='tentative'?`<span class="miniflag lock-${lock}">TENTATIVE</span>`:'';
+    blocks+=`<button class="evt ${e.status==='locked'?'locked':''} ${compact}" data-edit="${e.id}" data-track="${e.track}" style="top:${top}px;height:${h}px;left:calc(${left}% + 3px);width:calc(${w}% - 6px)">
+      <span class="e-time">${fmt12(e.start)} – ${fmt12(e.end)}</span><span class="e-title">${e.title}</span>${sub}<div class="e-flags">${flag}</div></button>`;
+  });
+
+  const hint=evts.length?'':`<div class="tl-hint">Double-click any time to add a block — or hit <b>+ Add block</b></div>`;
+  document.getElementById('boardBody').innerHTML=`<div class="timeline"><div class="tl-inner" id="tlInner" style="height:${height}px">${grid}${hint}${blocks}</div></div>`;
+
+  const inner=document.getElementById('tlInner');
+  inner.querySelectorAll('.evt').forEach(b=>b.addEventListener('click',ev=>{ev.stopPropagation(); openEditor(b.dataset.edit);}));
+  inner.addEventListener('dblclick',ev=>{
+    if(ev.target.closest('.evt'))return;
+    const rect=inner.getBoundingClientRect();
+    let mins=Math.round((winStart+(ev.clientY-rect.top)/PX)/15)*15;
+    mins=Math.max(winStart, Math.min(winEnd-15, mins));
+    const end=Math.min(winEnd, mins+60);
+    openEditor(null,d,`${pad(mins/60|0)}:${pad(mins%60)}`,`${pad(end/60|0)}:${pad(end%60)}`);
+  });
+  applyFilters(); renderNowLine(winStart,winEnd);
+}
+
+/* ========== PODCAST LINE-UP ========== */
+function renderLineup(){
+  const eps=state.events.filter(e=>e.track==='podcast').sort((a,b)=>a.day-b.day||toMin(a.start)-toMin(b.start));
+  const body=document.getElementById('lineupBody');
+  if(!eps.length){ body.innerHTML=`<div class="lu-empty">No episodes booked yet. Add podcast blocks (or hit <b>+ Add episode</b>) and each guest lands here automatically.</div>`; return; }
+  let html=`<div class="lu-row head"><div>When</div><div>Episode</div><div>Guest</div><div class="lu-status">Status</div></div>`;
+  eps.forEach(e=>{
+    html+=`<div class="lu-row" data-edit="${e.id}">
+      <div class="lu-when">${dowOf(e.day)} ${e.day} · ${fmtShort(e.start)}</div>
+      <div class="lu-title">${e.title}</div>
+      <div class="lu-guest ${e.guest?'':'tbd'}">${e.guest||'Guest — TBD'}</div>
+      <div class="lu-status"><span class="pill-status ${e.status}">${e.status}</span></div></div>`;
+  });
+  body.innerHTML=html;
+  body.querySelectorAll('[data-edit]').forEach(r=>r.addEventListener('click',()=>openEditor(r.dataset.edit)));
+}
+
+/* ========== WATCH / CONFLICTS ========== */
+function renderWatch(){
+  const problems=[];
+  const byPerson={};
+  state.events.forEach(e=>(e.people||[]).forEach(p=>{ if(!p||/TBD|full crew|team/i.test(p))return; (byPerson[p]=byPerson[p]||[]).push(e); }));
+  Object.entries(byPerson).forEach(([p,list])=>{
+    const s=list.slice().sort((a,b)=>a.day-b.day||toMin(a.start)-toMin(b.start));
+    for(let i=1;i<s.length;i++){ const A=s[i-1],B=s[i];
+      if(A.day===B.day&&toMin(B.start)<toMin(A.end)) problems.push({wt:`JUL ${B.day}`,msg:`<b>${p}</b> double-booked — “${A.title}” overlaps “${B.title}”.`});
+      else if(A.day===B.day){ const gap=toMin(B.start)-toMin(A.end); if(gap>=0&&gap<10&&B.status==='locked') problems.push({wt:`JUL ${B.day}`,msg:`Tight turnaround for <b>${p}</b>: only ${gap} min before locked “${B.title}”.`}); }
+    }
+  });
+  const land=state.events.find(e=>/reklaws land/i.test(e.title)), anchor=state.events.find(e=>e.id==='reklaws-ep');
+  const w=document.getElementById('watch'), ok=problems.length===0;
+  let items=problems.map(p=>`<li><span class="wt">${p.wt}</span><span>${p.msg}</span></li>`).join('');
+  if(land&&anchor){ const buf=toMin(anchor.start)-toMin(land.end); items+=`<li><span class="wt">JUL 24</span><span>Reklaws buffer: <b>${(buf/60|0)}h ${buf%60}m</b> from wheels-down (${fmt12(land.end)}) to the locked ${fmt12(anchor.start)} taping.</span></li>`; }
+  w.innerHTML=`<h3>Watch &amp; Conflicts <span class="badge ${ok?'ok':'warn'}">${ok?'ALL CLEAR ✓':problems.length+' TO REVIEW'}</span></h3>
+    <ul class="wlist">${items||'<li><span>No conflicts. Add crew names to blocks and this checks for double-bookings automatically.</span></li>'}</ul>`;
+}
+
+/* ========== STATS + COUNTDOWN + NOW ========== */
+function refreshStats(){
+  const days=new Set(state.events.map(e=>e.day));
+  document.getElementById('stDays').textContent=days.size;
+  document.getElementById('stEps').textContent=state.events.filter(e=>e.track==='podcast').length;
+  document.getElementById('stLocked').textContent=state.events.filter(e=>e.status==='locked').length;
+}
+const TARGET=new Date(YEAR,MONTH,25,9,0,0);
+function tick(){
+  const now=new Date(); let diff=Math.max(0,TARGET-now);
+  const d=Math.floor(diff/864e5); diff-=d*864e5; const h=Math.floor(diff/36e5); diff-=h*36e5; const m=Math.floor(diff/6e4); diff-=m*6e4; const s=Math.floor(diff/1e3);
+  cdD.textContent=pad(d); cdH.textContent=pad(h); cdM.textContent=pad(m); cdS.textContent=pad(s);
+  document.getElementById('cdNow').textContent=now.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+' · '+now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+}
+function renderNowLine(startMin,endMin){
+  const inner=document.getElementById('tlInner'); if(!inner)return; const old=inner.querySelector('.nowline'); if(old)old.remove();
+  const now=new Date(); if(now.getFullYear()!==YEAR||now.getMonth()!==MONTH||now.getDate()!==state.selectedDay)return;
+  const cur=now.getHours()*60+now.getMinutes(); if(cur<startMin||cur>endMin)return;
+  const el=document.createElement('div'); el.className='nowline'; el.style.top=((cur-startMin)*PX)+'px'; inner.appendChild(el);
+}
+
+/* ========== FILTERS ========== */
+const activeTracks=new Set(['podcast','rally','logistics']);
+function applyFilters(){ document.querySelectorAll('.evt').forEach(el=>el.classList.toggle('hide',!activeTracks.has(el.dataset.track))); }
+document.getElementById('filters').addEventListener('click',e=>{ const b=e.target.closest('.fchip'); if(!b)return; const t=b.dataset.track, on=b.getAttribute('aria-pressed')==='true'; b.setAttribute('aria-pressed',String(!on)); on?activeTracks.delete(t):activeTracks.add(t); applyFilters(); });
+
+/* ========== SELECT DAY ========== */
+function selectDay(day,scroll){ state.selectedDay=day; save(); renderMonth(); renderTabs(); renderBoard(); if(scroll)document.getElementById('board').scrollIntoView({behavior:'smooth',block:'start'}); }
+
+/* ========== EDITOR ========== */
+const drawer=document.getElementById('drawer'), backdrop=document.getElementById('backdrop'), form=document.getElementById('evForm');
+let lastFocus=null;
+const F=['id','title','day','track','start','end','guest','loc','people','gear','notes'].reduce((o,k)=>{o[k]=document.getElementById('f'+k[0].toUpperCase()+k.slice(1));return o;},{});
+function buildDayOptions(){ let o=''; for(let d=1;d<=daysInMonth();d++) o+=`<option value="${d}">${dowOf(d)} · July ${d}${DAY_ROLES[d]?' — '+DAY_ROLES[d].replace('★ ','').split(' · ')[0]:''}</option>`; document.getElementById('fDay').innerHTML=o; }
+function openEditor(id,presetDay,presetStart,presetEnd){
+  lastFocus=document.activeElement; document.getElementById('formErr').textContent='';
+  const ev=id?state.events.find(e=>e.id===id):null;
+  document.getElementById('dKicker').textContent=ev?'Edit block':'New block';
+  document.getElementById('dTitle').textContent=ev?ev.title:'Schedule a block';
+  F.id.value=ev?ev.id:'';
+  F.title.value=ev?ev.title:''; F.day.value=ev?ev.day:(presetDay||state.selectedDay);
+  F.track.value=ev?ev.track:'podcast'; F.start.value=ev?ev.start:(presetStart||'09:00'); F.end.value=ev?ev.end:(presetEnd||'10:00');
+  F.guest.value=ev?(ev.guest||''):''; F.loc.value=ev?(ev.loc||''):''; F.people.value=ev?(ev.people||[]).join(', '):'';
+  F.gear.value=ev?(ev.gear||''):''; F.notes.value=ev?(ev.notes||''):'';
+  form.querySelector(`input[name="status"][value="${ev?ev.status:'hold'}"]`).checked=true;
+  document.getElementById('delBtn').style.display=ev?'inline-flex':'none';
+  drawer.classList.add('open'); backdrop.classList.add('open'); drawer.setAttribute('aria-hidden','false');
+  setTimeout(()=>F.title.focus(),60);
+}
+function closeEditor(){ drawer.classList.remove('open'); backdrop.classList.remove('open'); drawer.setAttribute('aria-hidden','true'); if(lastFocus)lastFocus.focus(); }
+function saveEditor(){
+  const err=document.getElementById('formErr');
+  const title=F.title.value.trim(), start=F.start.value, end=F.end.value;
+  if(!title){err.textContent='Give the block a title.'; F.title.focus(); return;}
+  if(!start||!end){err.textContent='Set a start and end time.'; return;}
+  if(toMin(end)<=toMin(start)){err.textContent='End time must be after the start time.'; return;}
+  const data={ id:F.id.value||uid(), day:+F.day.value, start, end, track:F.track.value, title,
+    guest:F.guest.value.trim(), loc:F.loc.value.trim(),
+    people:F.people.value.split(',').map(s=>s.trim()).filter(Boolean), gear:F.gear.value.trim(),
+    notes:F.notes.value.trim(), status:form.querySelector('input[name="status"]:checked').value };
+  const i=state.events.findIndex(e=>e.id===data.id);
+  if(i>=0)state.events[i]=data; else state.events.push(data);
+  state.selectedDay=data.day; save(); renderAll(); closeEditor();
+}
+function deleteEditor(){
+  const id=F.id.value; if(!id)return; const ev=state.events.find(e=>e.id===id);
+  if(!confirm(`Delete “${ev?ev.title:'this block'}”? This can't be undone.`))return;
+  state.events=state.events.filter(e=>e.id!==id); save(); renderAll(); closeEditor();
+}
+document.getElementById('saveBtn').addEventListener('click',saveEditor);
+document.getElementById('delBtn').addEventListener('click',deleteEditor);
+document.getElementById('cancelBtn').addEventListener('click',closeEditor);
+document.getElementById('drawerClose').addEventListener('click',closeEditor);
+backdrop.addEventListener('click',closeEditor);
+form.addEventListener('submit',e=>{e.preventDefault(); saveEditor();});
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&drawer.classList.contains('open'))closeEditor(); });
+document.getElementById('addEpBtn').addEventListener('click',()=>{ openEditor(null,state.selectedDay); F.track.value='podcast'; F.title.value=''; document.getElementById('dTitle').textContent='New podcast episode'; });
+
+/* ========== EXPORT / IMPORT / RESET ========== */
+document.getElementById('expBtn').addEventListener('click',()=>{
+  const blob=new Blob([JSON.stringify({exported:new Date().toISOString(),events:state.events},null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='dream-rally-schedule.json'; a.click(); URL.revokeObjectURL(a.href);
+});
+document.getElementById('impBtn').addEventListener('click',()=>document.getElementById('impFile').click());
+document.getElementById('impFile').addEventListener('change',ev=>{
+  const f=ev.target.files[0]; if(!f)return; const r=new FileReader();
+  r.onload=()=>{ try{ const d=JSON.parse(r.result); const arr=Array.isArray(d)?d:d.events; if(!Array.isArray(arr))throw 0;
+    if(!confirm('Import this schedule? It replaces everything currently in the planner.'))return;
+    state.events=arr.map(e=>Object.assign({id:uid(),status:'hold',track:'logistics',people:[]},e)); save(); renderAll();
+  }catch(e){ alert('That file could not be read as a schedule export.'); } ev.target.value=''; };
+  r.readAsText(f);
+});
+/* Reset button removed by request — protects the team's planning from an accidental wipe. */
+
+/* ========== INIT ========== */
+function renderAll(){ renderMonth(); renderTabs(); renderBoard(); renderLineup(); renderWatch(); refreshStats(); }
+load(); buildDayOptions(); renderAll(); tick(); setInterval(tick,1000);
+window.addEventListener('resize',()=>renderBoard());
+</script>
+</body>
+</html>
