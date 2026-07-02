@@ -270,7 +270,7 @@
   </div>
   <div class="saved">
     <span class="save-dot" id="syncDot"></span>
-    <span id="saveStatus">Local only — connect to sync</span>
+    <span id="saveStatus">Live · view only</span>
     <button class="synclink" id="refreshBtn" title="Pull the latest from GitHub" aria-label="Refresh from GitHub">↻</button>
     <button class="synclink" id="connectBtn">Connect</button>
   </div>
@@ -385,7 +385,7 @@
 
   <footer>
     <div class="f-grid">
-      <div>August Luxury Motorcars · Okanagan Dream Rally 2026 · Production Schedule<br>Times Pacific · Built for Matt August by Aidan Feddersen · Auto-saves &amp; syncs to GitHub</div>
+      <div>August Luxury Motorcars · Okanagan Dream Rally 2026 · Production Schedule<br>Times Pacific · Built for Matt August by Aidan Feddersen · Live shared schedule — updates for everyone in real time</div>
       <div style="display:flex;gap:10px"><button class="btn" onclick="window.print()">⎙ Print</button><button class="btn" onclick="document.getElementById('board').scrollIntoView()">↑ Board</button></div>
     </div>
   </footer>
@@ -434,24 +434,17 @@
   </div>
 </aside>
 
-<!-- GITHUB SYNC MODAL -->
+<!-- TEAM PASSWORD MODAL -->
 <div class="modal-backdrop" id="syncBackdrop"></div>
 <div class="modal" id="syncModal" role="dialog" aria-modal="true" aria-labelledby="syncTitle">
-  <h3 id="syncTitle">Connect to GitHub</h3>
-  <p>Paste a GitHub token and every edit auto-saves to GitHub for the whole team. The token lives only in this browser — it's never uploaded or committed.</p>
-  <ol>
-    <li>Open the token page (link below) while signed in as <b>aidanfedds</b>.</li>
-    <li>Resource owner <b>aidanfedds</b> · Repository access → <b>Only select repositories</b> → <b>dream-rally-run-of-show</b>.</li>
-    <li>Permissions → Repository → <b>Contents: Read and write</b>. Generate, then copy the <b>github_pat_…</b> token.</li>
-  </ol>
-  <a class="tok-link" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Create a token on GitHub →</a>
-  <input id="tokenInput" type="password" placeholder="github_pat_… or ghp_…" autocomplete="off" />
+  <h3 id="syncTitle">Unlock editing</h3>
+  <p>Enter the team password to add, move, or remove blocks. Anyone with the link can still view the live schedule without it — changes show up for everyone automatically.</p>
+  <input id="tokenInput" type="password" placeholder="Team password" autocomplete="off" />
   <div class="err" id="tokenErr"></div>
   <div class="actions">
-    <button class="btn btn-danger" id="disconnectBtn" style="display:none">Disconnect</button>
     <span class="spacer"></span>
     <button class="btn" id="syncCancel">Cancel</button>
-    <button class="btn btn-primary" id="syncSave">Connect &amp; sync</button>
+    <button class="btn btn-primary" id="syncSave">Unlock</button>
   </div>
 </div>
 
@@ -485,7 +478,7 @@ function load(){
 function snapshot(){ return {events:state.events, selectedDay:state.selectedDay, names:state.names}; }
 function save(){
   try{localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot()));}catch(e){}
-  if(ghToken()) scheduleGhPush(); else setSync('local');
+  if(canEdit()) scheduleSave();
 }
 
 /* ---- helpers ---- */
@@ -684,6 +677,7 @@ let lastFocus=null;
 const F=['id','title','day','track','start','end','guest','loc','people','gear','notes'].reduce((o,k)=>{o[k]=document.getElementById('f'+k[0].toUpperCase()+k.slice(1));return o;},{});
 function buildDayOptions(){ let o=''; for(let d=1;d<=daysInMonth();d++) o+=`<option value="${d}">${dowOf(d)} · July ${d}${DAY_ROLES[d]?' — '+DAY_ROLES[d].replace('★ ','').split(' · ')[0]:''}</option>`; document.getElementById('fDay').innerHTML=o; }
 function openEditor(id,presetDay,presetStart,presetEnd){
+  if(!canEdit()){ openSync(); return; }
   lastFocus=document.activeElement; document.getElementById('formErr').textContent='';
   const ev=id?state.events.find(e=>e.id===id):null;
   document.getElementById('dKicker').textContent=ev?'Edit block':'New block';
@@ -743,73 +737,77 @@ document.getElementById('impFile').addEventListener('change',ev=>{
 });
 /* Reset button removed by request — protects the team's planning from an accidental wipe. */
 
-/* ========== GITHUB SYNC ========== */
-const GH={owner:'aidanfedds',repo:'dream-rally-run-of-show',branch:'main',file:'schedule.json'};
-const TOKEN_KEY='dreamRally.ghtoken';
-let remoteSha=null, pushTimer=null;
-function ghToken(){ try{return localStorage.getItem(TOKEN_KEY)||'';}catch(e){return '';} }
-function setToken(t){ try{ t?localStorage.setItem(TOKEN_KEY,t):localStorage.removeItem(TOKEN_KEY);}catch(e){} }
-function b64enc(s){ return btoa(unescape(encodeURIComponent(s))); }
-function b64dec(b){ return decodeURIComponent(escape(atob(b))); }
-function ghHeaders(){ const h={'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}; const t=ghToken(); if(t)h['Authorization']='Bearer '+t; return h; }
-async function ghGet(){
-  const url=`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${GH.file}?ref=${GH.branch}`;
-  const res=await fetch(url,{headers:ghHeaders(),cache:'no-store'});
-  if(res.status===404){ remoteSha=null; return null; }
-  if(!res.ok) throw new Error('read '+res.status);
-  const j=await res.json(); remoteSha=j.sha;
-  return JSON.parse(b64dec((j.content||'').replace(/\n/g,'')));
+/* ========== LIVE BACKEND SYNC (Cloudflare Worker + D1) ========== */
+const API='https://dream-rally-api.aidanfedds.workers.dev';
+const PW_KEY='dreamRally.teampw';
+let lastStamp=null, pushTimer=null, saving=false, pendingLocal=false;
+function teamPw(){ try{return localStorage.getItem(PW_KEY)||'';}catch(e){return '';} }
+function setPw(p){ try{ p?localStorage.setItem(PW_KEY,p):localStorage.removeItem(PW_KEY);}catch(e){} }
+function canEdit(){ return !!teamPw(); }
+async function apiGet(){
+  const res=await fetch(API+'/schedule',{cache:'no-store'});
+  if(!res.ok) throw new Error('GET '+res.status);
+  return res.json();
 }
-async function ghPut(){
-  if(!ghToken()) throw new Error('no token');
-  const url=`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${GH.file}`;
-  const body=()=>JSON.stringify(Object.assign({message:'Update schedule', content:b64enc(JSON.stringify(snapshot(),null,2)), branch:GH.branch}, remoteSha?{sha:remoteSha}:{}));
-  let res=await fetch(url,{method:'PUT',headers:ghHeaders(),body:body()});
-  if(res.status===409||res.status===422){ await ghGet(); res=await fetch(url,{method:'PUT',headers:ghHeaders(),body:body()}); }
-  if(!res.ok) throw new Error('write '+res.status);
-  const j=await res.json(); remoteSha=(j.content&&j.content.sha)||remoteSha;
+async function apiSave(){
+  const res=await fetch(API+'/schedule',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:teamPw(),data:snapshot()})});
+  if(res.status===401){ setPw(''); throw new Error('unauthorized'); }
+  if(!res.ok) throw new Error('POST '+res.status);
+  const j=await res.json(); lastStamp=j.updated_at; return j;
+}
+async function apiAuth(pw){
+  try{ const res=await fetch(API+'/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})}); const j=await res.json(); return !!j.ok; }catch(e){ return false; }
 }
 function setSync(kind){
   const dot=document.getElementById('syncDot'), txt=document.getElementById('saveStatus'), btn=document.getElementById('connectBtn');
-  const map={local:['#7E8896','Local only — connect to sync'],synced:['#53f445','Synced to GitHub ✓'],syncing:['#EFA201','Syncing…'],error:['#FF5236','Sync error — retrying']};
-  const m=map[kind]||map.local; if(dot){dot.style.background=m[0]; dot.style.boxShadow='0 0 10px '+m[0];} if(txt)txt.textContent=m[1]; if(btn)btn.textContent=ghToken()?'Disconnect':'Connect';
+  const map={view:['#7E8896','Live · view only'],editing:['#53f445','Editing on · live'],saving:['#EFA201','Saving…'],saved:['#53f445','Saved ✓ · live'],unsaved:['#EFA201','Unsaved blocks — unlock to save'],error:['#FF5236','Save failed — retrying']};
+  const m=map[kind]||map.view; if(dot){dot.style.background=m[0]; dot.style.boxShadow='0 0 10px '+m[0];} if(txt)txt.textContent=m[1]; if(btn)btn.textContent=canEdit()?'Lock':'Unlock editing';
 }
-function scheduleGhPush(){ setSync('syncing'); clearTimeout(pushTimer); pushTimer=setTimeout(()=>{ ghPut().then(()=>setSync('synced')).catch(()=>setSync('error')); },900); }
-function adoptRemote(remote){
-  if(!remote) return false;
-  let changed=false;
-  if(Array.isArray(remote.events)){
-    const ids=new Set(remote.events.map(e=>e.id));
-    const extras=state.events.filter(e=>!ids.has(e.id));
-    const byId={}; remote.events.forEach(e=>byId[e.id]=e); extras.forEach(e=>byId[e.id]=e);
-    state.events=Object.values(byId);
-    if(extras.length) changed=true;
+function scheduleSave(){ setSync('saving'); clearTimeout(pushTimer); pushTimer=setTimeout(()=>{ saving=true; apiSave().then(()=>{ saving=false; pendingLocal=false; setSync('editing'); }).catch(()=>{ saving=false; setSync(canEdit()?'error':'view'); }); },700); }
+function mergeServer(data){
+  let extras=false;
+  if(data&&Array.isArray(data.events)){
+    const ids=new Set(data.events.map(e=>e.id));
+    const ex=state.events.filter(e=>!ids.has(e.id));
+    const byId={}; data.events.forEach(e=>byId[e.id]=e); ex.forEach(e=>byId[e.id]=e);
+    state.events=Object.values(byId); if(ex.length)extras=true;
   }
-  if(Array.isArray(remote.names)){
-    const set=new Set(remote.names.map(n=>n.toLowerCase()));
+  if(data&&Array.isArray(data.names)){
+    const set=new Set(data.names.map(n=>n.toLowerCase()));
     const nx=state.names.filter(n=>!set.has(n.toLowerCase()));
-    state.names=remote.names.concat(nx);
-    if(nx.length) changed=true;
+    state.names=data.names.concat(nx); if(nx.length)extras=true;
   }
-  if(remote.selectedDay) state.selectedDay=remote.selectedDay;
   try{localStorage.setItem(STORAGE_KEY,JSON.stringify(snapshot()));}catch(e){}
-  return changed;
+  return extras;
+}
+function adoptServer(data){
+  if(!data) return;
+  if(Array.isArray(data.events)) state.events=data.events;
+  if(Array.isArray(data.names)) state.names=data.names;
+  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(snapshot()));}catch(e){}
+}
+async function poll(){
+  try{
+    const r=await apiGet();
+    if(r&&r.updated_at&&r.updated_at!==lastStamp&&!drawer.classList.contains('open')&&!saving&&!pendingLocal){
+      adoptServer(r.data); lastStamp=r.updated_at; renderAll(); setSync(canEdit()?'editing':'view');
+    }
+  }catch(e){}
 }
 const syncModal=document.getElementById('syncModal'), syncBackdrop=document.getElementById('syncBackdrop');
-function openSync(){ document.getElementById('tokenErr').textContent=''; document.getElementById('tokenInput').value=''; document.getElementById('disconnectBtn').style.display=ghToken()?'inline-flex':'none'; syncModal.classList.add('open'); syncBackdrop.classList.add('open'); setTimeout(()=>document.getElementById('tokenInput').focus(),60); }
+function openSync(){ document.getElementById('tokenErr').textContent=''; document.getElementById('tokenInput').value=''; syncModal.classList.add('open'); syncBackdrop.classList.add('open'); setTimeout(()=>document.getElementById('tokenInput').focus(),60); }
 function closeSync(){ syncModal.classList.remove('open'); syncBackdrop.classList.remove('open'); }
-document.getElementById('connectBtn').addEventListener('click',openSync);
+document.getElementById('connectBtn').addEventListener('click',()=>{ if(canEdit()){ setPw(''); setSync('view'); } else openSync(); });
 document.getElementById('syncCancel').addEventListener('click',closeSync);
 syncBackdrop.addEventListener('click',closeSync);
-document.getElementById('disconnectBtn').addEventListener('click',()=>{ setToken(''); closeSync(); setSync('local'); });
 document.getElementById('syncSave').addEventListener('click',async()=>{
   const t=document.getElementById('tokenInput').value.trim(), err=document.getElementById('tokenErr');
-  if(!t){ err.textContent='Paste your token first.'; return; }
-  err.textContent='Checking token…'; setToken(t);
-  try{ await ghGet(); await ghPut(); err.textContent=''; closeSync(); setSync('synced'); }
-  catch(e){ setToken(''); err.textContent='That token didn’t work — make sure it has Contents: Read and write on this repo. ('+e.message+')'; setSync('local'); }
+  if(!t){ err.textContent='Enter the team password.'; return; }
+  err.textContent='Checking…';
+  if(await apiAuth(t)){ setPw(t); err.textContent=''; closeSync(); setSync('editing'); try{ await apiSave(); pendingLocal=false; }catch(e){} }
+  else { err.textContent='Wrong password — check with whoever set it up.'; }
 });
-document.getElementById('refreshBtn').addEventListener('click',async()=>{ setSync('syncing'); try{ adoptRemote(await ghGet()); renderAll(); setSync(ghToken()?'synced':'local'); }catch(e){ setSync('error'); } });
+document.getElementById('refreshBtn').addEventListener('click',poll);
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&syncModal.classList.contains('open'))closeSync(); });
 
 /* ========== ON-DECK NAMES (parking lot) ========== */
@@ -819,9 +817,10 @@ function renderBullpen(){
   if(!state.names.length){ list.innerHTML='<div class="bp-empty">No names yet — jot down anyone you want to slot in later.</div>'; return; }
   list.innerHTML=state.names.map((n,i)=>`<span class="bp-chip" data-i="${i}" title="Click to schedule ${esc(n)}">${esc(n)}<button class="bp-x" data-del="${i}" aria-label="Remove ${esc(n)}">×</button></span>`).join('');
   list.querySelectorAll('.bp-chip').forEach(c=>c.addEventListener('click',e=>{ if(e.target.closest('.bp-x'))return; scheduleFromName(state.names[+c.dataset.i]); }));
-  list.querySelectorAll('.bp-x').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); state.names.splice(+b.dataset.del,1); save(); renderBullpen(); }));
+  list.querySelectorAll('.bp-x').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); if(!canEdit()){ openSync(); return; } state.names.splice(+b.dataset.del,1); save(); renderBullpen(); }));
 }
 function addNames(raw){
+  if(!canEdit()){ openSync(); return; }
   const parts=(raw||'').split(/[,\n]/).map(s=>s.trim()).filter(Boolean); let added=0;
   parts.forEach(p=>{ if(!state.names.some(n=>n.toLowerCase()===p.toLowerCase())){ state.names.push(p); added++; } });
   if(added){ save(); renderBullpen(); }
@@ -835,12 +834,17 @@ function renderAll(){ renderMonth(); renderBullpen(); renderTabs(); renderBoard(
 async function boot(){
   load(); buildDayOptions(); renderAll(); tick(); setInterval(tick,1000);
   window.addEventListener('resize',()=>renderBoard());
-  setSync(ghToken()?'syncing':'local');
+  setSync(canEdit()?'editing':'view');
   try{
-    const r=await ghGet();
-    if(r===null){ if(ghToken()){ try{ await ghPut(); setSync('synced'); }catch(e){ setSync('error'); } } else setSync('local'); }
-    else { const hadExtras=adoptRemote(r); renderAll(); if(ghToken()){ if(hadExtras){ try{ await ghPut(); }catch(e){} } setSync('synced'); } else setSync('local'); }
-  }catch(e){ setSync(ghToken()?'error':'local'); }
+    const r=await apiGet();
+    if(r && r.data){
+      const hadExtras=mergeServer(r.data); lastStamp=r.updated_at; renderAll();
+      if(hadExtras){ if(canEdit()){ try{ await apiSave(); }catch(e){} setSync('editing'); } else { pendingLocal=true; setSync('unsaved'); } }
+      else setSync(canEdit()?'editing':'view');
+    } else if(canEdit()){ try{ await apiSave(); }catch(e){} setSync('editing'); }
+    else setSync('view');
+  }catch(e){ setSync(canEdit()?'error':'view'); }
+  setInterval(poll,6000);
 }
 boot();
 </script>
