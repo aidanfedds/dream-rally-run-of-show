@@ -133,6 +133,9 @@
   .bp-empty{color:var(--muted); font-size:13px; padding:6px 2px;}
   .bp-chip[draggable="true"]{cursor:grab;}
   .bp-chip.dragging{opacity:.45; border-color:var(--lime); cursor:grabbing;}
+  .bullpen-card.bp-drop{outline:2px dashed var(--lime); outline-offset:-3px; background:rgba(83,244,69,.05);}
+  .evt[draggable="true"]{cursor:grab;} .evt.dragging{opacity:.4;}
+  .daytab.tab-drop{border-color:var(--lime); background:rgba(83,244,69,.12);}
 
   /* ---------- controls ---------- */
   .controls{display:flex; flex-wrap:wrap; gap:12px 20px; align-items:center; margin-bottom:16px;}
@@ -334,7 +337,7 @@
       <div><div class="eyebrow">02 · On Deck</div><h2>People to Schedule</h2></div>
       <div class="mono" style="font-size:11px;color:var(--muted)">Drop names now, place them on a day later</div>
     </div>
-    <div class="bullpen-card">
+    <div class="bullpen-card" id="bullpenCard">
       <div class="bp-input">
         <input id="bpInput" placeholder="Add a name, press Enter — or paste a comma-separated list" autocomplete="off" />
         <button class="btn btn-primary" id="bpAdd">+ Add</button>
@@ -534,7 +537,12 @@ function renderTabs(){
       <div class="dt-dow">${dowOf(d)} · JUL</div><div class="dt-day">${d}</div>
       <div class="dt-role">${DAY_ROLES[d].replace('★ ','')}</div>
     </button>`).join('');
-  document.querySelectorAll('.daytab').forEach(b=>b.addEventListener('click',()=>selectDay(+b.dataset.day,true)));
+  document.querySelectorAll('.daytab').forEach(b=>{
+    b.addEventListener('click',()=>selectDay(+b.dataset.day,true));
+    b.addEventListener('dragover',ev=>{ if(![...ev.dataTransfer.types].includes('text/dr-block'))return; ev.preventDefault(); ev.dataTransfer.dropEffect='move'; b.classList.add('tab-drop'); });
+    b.addEventListener('dragleave',()=>b.classList.remove('tab-drop'));
+    b.addEventListener('drop',ev=>{ ev.preventDefault(); b.classList.remove('tab-drop'); const id=ev.dataTransfer.getData('text/dr-block'); if(id) moveBlockToDay(id, +b.dataset.day); });
+  });
 }
 
 /* ========== LANE PACKING ========== */
@@ -591,7 +599,7 @@ function renderBoard(){
     const lock=e.track==='podcast'?'lime':e.track==='rally'?'gold':'slate';
     const sub=e.guest?`<span class="e-sub">${e.guest}</span>`:(e.loc?`<span class="e-sub">${e.loc}</span>`:'');
     const flag=e.status==='tentative'?`<span class="miniflag lock-${lock}">TENTATIVE</span>`:'';
-    blocks+=`<button class="evt ${e.status==='locked'?'locked':''} ${compact}" data-edit="${e.id}" data-track="${e.track}" style="top:${top}px;height:${h}px;left:calc(${left}% + 3px);width:calc(${w}% - 6px)">
+    blocks+=`<button class="evt ${e.status==='locked'?'locked':''} ${compact}" data-edit="${e.id}" data-track="${e.track}" draggable="true" style="top:${top}px;height:${h}px;left:calc(${left}% + 3px);width:calc(${w}% - 6px)">
       <span class="e-time">${fmt12(e.start)} – ${fmt12(e.end)}</span><span class="e-title">${e.title}</span>${sub}<div class="e-flags">${flag}</div></button>`;
   });
 
@@ -600,24 +608,30 @@ function renderBoard(){
 
   const inner=document.getElementById('tlInner');
   const yToMins=cy=>{ const rect=inner.getBoundingClientRect(); const m=Math.round((winStart+(cy-rect.top)/PX)/15)*15; return Math.max(winStart, Math.min(winEnd-15, m)); };
-  inner.querySelectorAll('.evt').forEach(b=>b.addEventListener('click',ev=>{ev.stopPropagation(); openEditor(b.dataset.edit);}));
+  inner.querySelectorAll('.evt').forEach(b=>{
+    b.addEventListener('click',ev=>{ev.stopPropagation(); openEditor(b.dataset.edit);});
+    b.addEventListener('dragstart',ev=>{ ev.dataTransfer.setData('text/dr-block', b.dataset.edit); ev.dataTransfer.effectAllowed='move'; b.classList.add('dragging'); });
+    b.addEventListener('dragend',()=>b.classList.remove('dragging'));
+  });
   inner.addEventListener('dblclick',ev=>{
     if(ev.target.closest('.evt'))return;
     const mins=yToMins(ev.clientY), end=Math.min(winEnd, mins+60);
     openEditor(null,d,`${pad(mins/60|0)}:${pad(mins%60)}`,`${pad(end/60|0)}:${pad(end%60)}`);
   });
-  // drag a name pill from On Deck onto the board to place it at a time
+  // drop zone: a name pill (create a block) OR an existing block (reschedule its time)
   const dl=inner.querySelector('#dropLine'), tl=inner.parentElement;
   inner.addEventListener('dragover',ev=>{
-    if(![...ev.dataTransfer.types].includes('text/plain'))return;
-    ev.preventDefault(); ev.dataTransfer.dropEffect='copy';
+    const types=[...ev.dataTransfer.types]; if(!types.includes('text/dr-name')&&!types.includes('text/dr-block'))return;
+    ev.preventDefault(); ev.dataTransfer.dropEffect=types.includes('text/dr-block')?'move':'copy';
     const mins=yToMins(ev.clientY);
     dl.style.top=((mins-winStart)*PX)+'px'; dl.querySelector('span').textContent=fmt12(pad(mins/60|0)+':'+pad(mins%60)); dl.classList.add('show'); tl.classList.add('drop-active');
   });
   inner.addEventListener('dragleave',ev=>{ if(ev.target===inner){ dl.classList.remove('show'); tl.classList.remove('drop-active'); } });
   inner.addEventListener('drop',ev=>{
     ev.preventDefault(); dl.classList.remove('show'); tl.classList.remove('drop-active');
-    const name=ev.dataTransfer.getData('text/plain'); if(name) dropNameAt(name, yToMins(ev.clientY));
+    const mins=yToMins(ev.clientY);
+    const nm=ev.dataTransfer.getData('text/dr-name'), bid=ev.dataTransfer.getData('text/dr-block');
+    if(nm) dropNameAt(nm, mins); else if(bid) rescheduleBlock(bid, mins);
   });
   applyFilters(); renderNowLine(winStart,winEnd);
 }
@@ -835,7 +849,7 @@ function renderBullpen(){
   list.innerHTML=state.names.map((n,i)=>`<span class="bp-chip" data-i="${i}" draggable="true" title="Drag onto the board to place at a time, or click to schedule">${esc(n)}<button class="bp-x" data-del="${i}" aria-label="Remove ${esc(n)}">×</button></span>`).join('');
   list.querySelectorAll('.bp-chip').forEach(c=>{
     c.addEventListener('click',e=>{ if(e.target.closest('.bp-x'))return; scheduleFromName(state.names[+c.dataset.i]); });
-    c.addEventListener('dragstart',e=>{ e.dataTransfer.setData('text/plain', state.names[+c.dataset.i]); e.dataTransfer.effectAllowed='copy'; c.classList.add('dragging'); });
+    c.addEventListener('dragstart',e=>{ e.dataTransfer.setData('text/dr-name', state.names[+c.dataset.i]); e.dataTransfer.effectAllowed='copy'; c.classList.add('dragging'); });
     c.addEventListener('dragend',()=>c.classList.remove('dragging'));
   });
   list.querySelectorAll('.bp-x').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); if(!canEdit()){ openSync(); return; } state.names.splice(+b.dataset.del,1); save(); renderBullpen(); }));
@@ -857,6 +871,33 @@ function dropNameAt(name, mins){
 }
 document.getElementById('bpAdd').addEventListener('click',()=>{ const el=document.getElementById('bpInput'); addNames(el.value); el.value=''; el.focus(); });
 document.getElementById('bpInput').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); addNames(e.target.value); e.target.value=''; } });
+// drag a scheduled block back onto On Deck to un-schedule it
+const bpCard=document.getElementById('bullpenCard');
+if(bpCard){
+  bpCard.addEventListener('dragover',ev=>{ if(![...ev.dataTransfer.types].includes('text/dr-block'))return; ev.preventDefault(); ev.dataTransfer.dropEffect='move'; bpCard.classList.add('bp-drop'); });
+  bpCard.addEventListener('dragleave',ev=>{ if(ev.target===bpCard) bpCard.classList.remove('bp-drop'); });
+  bpCard.addEventListener('drop',ev=>{ ev.preventDefault(); bpCard.classList.remove('bp-drop'); const id=ev.dataTransfer.getData('text/dr-block'); if(id) unscheduleBlock(id); });
+}
+function rescheduleBlock(id, mins){
+  if(!canEdit()){ openSync(); return; }
+  const e=state.events.find(x=>x.id===id); if(!e)return;
+  const dur=Math.max(15, toMin(e.end)-toMin(e.start)); const en=Math.min(24*60, mins+dur);
+  e.start=pad(mins/60|0)+':'+pad(mins%60); e.end=pad(en/60|0)+':'+pad(en%60);
+  save(); renderAll();
+}
+function moveBlockToDay(id, day){
+  if(!canEdit()){ openSync(); return; }
+  const e=state.events.find(x=>x.id===id); if(!e)return;
+  e.day=day; state.selectedDay=day; save(); renderAll();
+}
+function unscheduleBlock(id){
+  if(!canEdit()){ openSync(); return; }
+  const e=state.events.find(x=>x.id===id); if(!e)return;
+  const label=(e.title||e.guest||'').trim();
+  state.events=state.events.filter(x=>x.id!==id);
+  if(label && !state.names.some(n=>n.toLowerCase()===label.toLowerCase())) state.names.push(label);
+  save(); renderAll();
+}
 
 /* ========== INIT ========== */
 function renderAll(){ renderMonth(); renderBullpen(); renderTabs(); renderBoard(); renderLineup(); renderWatch(); refreshStats(); }
