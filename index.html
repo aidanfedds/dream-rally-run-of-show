@@ -410,7 +410,7 @@
   </div>
   <form class="d-body" id="evForm" novalidate>
     <input type="hidden" name="id" id="fId" />
-    <div class="frow"><label for="fTitle">Title *</label><input id="fTitle" name="title" placeholder="e.g. EP 02 Taping · Crew Call · Car Staging" required /></div>
+    <div class="frow"><label for="fTitle">Title *</label><input id="fTitle" name="title" maxlength="90" placeholder="e.g. EP 02 Taping · Crew Call · Car Staging" required /></div>
     <div class="frow2">
       <div><label for="fDay">Day (July)</label><select id="fDay" name="day"></select></div>
       <div><label for="fTrack">Track</label><select id="fTrack" name="track">
@@ -421,11 +421,11 @@
       <div><label for="fStart">Start *</label><input id="fStart" type="time" name="start" required /></div>
       <div><label for="fEnd">End *</label><input id="fEnd" type="time" name="end" required /></div>
     </div>
-    <div class="frow"><label for="fGuest">Guest / Talent</label><input id="fGuest" name="guest" placeholder="Podcast guest or arriving talent" /></div>
-    <div class="frow"><label for="fLoc">Location</label><input id="fLoc" name="loc" placeholder="Showroom studio · YLW airport · Grid…" /></div>
-    <div class="frow"><label for="fPeople">Crew / People <span style="text-transform:none;letter-spacing:0">(comma-separated)</span></label><input id="fPeople" name="people" placeholder="Matt August, Aidan Feddersen, Camera Op 2" /></div>
-    <div class="frow"><label for="fGear">Camera / Gear</label><input id="fGear" name="gear" placeholder="3-cam · a7S3 / FX3 / FX30 · lav + shotgun" /></div>
-    <div class="frow"><label for="fNotes">Notes</label><textarea id="fNotes" name="notes" placeholder="Anything the team needs to know for this block."></textarea></div>
+    <div class="frow"><label for="fGuest">Guest / Talent</label><input id="fGuest" name="guest" maxlength="90" placeholder="Podcast guest or arriving talent" /></div>
+    <div class="frow"><label for="fLoc">Location</label><input id="fLoc" name="loc" maxlength="90" placeholder="Showroom studio · YLW airport · Grid…" /></div>
+    <div class="frow"><label for="fPeople">Crew / People <span style="text-transform:none;letter-spacing:0">(comma-separated)</span></label><input id="fPeople" name="people" maxlength="240" placeholder="Matt August, Aidan Feddersen, Camera Op 2" /></div>
+    <div class="frow"><label for="fGear">Camera / Gear</label><input id="fGear" name="gear" maxlength="140" placeholder="3-cam · a7S3 / FX3 / FX30 · lav + shotgun" /></div>
+    <div class="frow"><label for="fNotes">Notes</label><textarea id="fNotes" name="notes" maxlength="800" placeholder="Anything the team needs to know for this block."></textarea></div>
     <div class="frow"><label>Status</label>
       <div class="seg" id="fStatus">
         <label class="seg-opt"><input type="radio" name="status" value="locked" /><span>🔒 Locked</span></label>
@@ -437,6 +437,7 @@
   </form>
   <div class="drawer-foot">
     <button class="btn btn-danger" id="delBtn" style="display:none">Delete</button>
+    <button class="btn" id="onDeckBtn" style="display:none" title="Remove from the day and put the name back on the On Deck list">↩ To On Deck</button>
     <span class="spacer"></span>
     <button class="btn" id="cancelBtn">Cancel</button>
     <button class="btn btn-primary" id="saveBtn">Save block</button>
@@ -485,10 +486,8 @@ function load(){
   state.events=clone(SEED_EVENTS);
 }
 function snapshot(){ return {events:state.events, selectedDay:state.selectedDay, names:state.names}; }
-function save(){
-  try{localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot()));}catch(e){}
-  if(canEdit()) scheduleSave();
-}
+function saveLocal(){ try{localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot()));}catch(e){} }
+function save(){ saveLocal(); if(canEdit()) scheduleSave(); }
 
 /* ---- helpers ---- */
 const toMin=t=>{const[h,m]=t.split(':').map(Number);return h*60+m;};
@@ -511,7 +510,7 @@ function renderMonth(){
     const isToday=(new Date(YEAR,MONTH,d)).toDateString()===new Date().toDateString();
     let cls='cell day'; if(isWeek)cls+=' rallyweek'; if(isEvent&&evs.length)cls+=' event'; if(isToday)cls+=' today'; if(d===state.selectedDay)cls+=' selected';
     let chips='';
-    evs.slice(0,3).forEach(e=>{ chips+=`<div class="mchip ${e.status==='locked'?'locked':''}" data-track="${e.track}" data-edit="${e.id}" role="button" tabindex="0" title="${e.title}"><span class="mt">${fmtShort(e.start)}</span><span class="mn">${e.title}</span></div>`; });
+    evs.slice(0,3).forEach(e=>{ chips+=`<div class="mchip ${e.status==='locked'?'locked':''}" data-track="${e.track}" data-edit="${e.id}" role="button" tabindex="0" title="${esc(e.title)}"><span class="mt">${fmtShort(e.start)}</span><span class="mn">${esc(e.title)}</span></div>`; });
     if(evs.length>3) chips+=`<div class="mmore">+${evs.length-3} more</div>`;
     html+=`<div class="${cls}" data-day="${d}" role="button" tabindex="0" aria-label="July ${d}, ${evs.length} blocks">
       <div class="cell-top"><span class="dnum">${d}</span>${isEvent?'<span class="badge-day rally">Rally</span>':`<button class="qadd" data-add="${d}" aria-label="Add block to July ${d}" tabindex="-1">+</button>`}</div>
@@ -597,10 +596,11 @@ function renderBoard(){
     const top=(toMin(e.start)-winStart)*PX, h=Math.max((toMin(e.end)-toMin(e.start))*PX-4,44);
     const w=100/e._lanes, left=e._lane*w, compact=h<72?'compact':'';
     const lock=e.track==='podcast'?'lime':e.track==='rally'?'gold':'slate';
-    const sub=e.guest?`<span class="e-sub">${e.guest}</span>`:(e.loc?`<span class="e-sub">${e.loc}</span>`:'');
+    const sub=e.guest?`<span class="e-sub">${esc(e.guest)}</span>`:(e.loc?`<span class="e-sub">${esc(e.loc)}</span>`:'');
     const flag=e.status==='tentative'?`<span class="miniflag lock-${lock}">TENTATIVE</span>`:'';
-    blocks+=`<button class="evt ${e.status==='locked'?'locked':''} ${compact}" data-edit="${e.id}" data-track="${e.track}" draggable="true" style="top:${top}px;height:${h}px;left:calc(${left}% + 3px);width:calc(${w}% - 6px)">
-      <span class="e-time">${fmt12(e.start)} – ${fmt12(e.end)}</span><span class="e-title">${e.title}</span>${sub}<div class="e-flags">${flag}</div></button>`;
+    const lk=e.status==='locked';
+    blocks+=`<button class="evt ${lk?'locked':''} ${compact}" data-edit="${e.id}" data-track="${e.track}" draggable="${lk?'false':'true'}" style="top:${top}px;height:${h}px;left:calc(${left}% + 3px);width:calc(${w}% - 6px)">
+      <span class="e-time">${fmt12(e.start)} – ${fmt12(e.end)}</span><span class="e-title">${esc(e.title)}</span>${sub}<div class="e-flags">${flag}</div></button>`;
   });
 
   const hint=evts.length?'':`<div class="tl-hint">Double-click any time to add a block — or hit <b>+ Add block</b></div>`;
@@ -645,8 +645,8 @@ function renderLineup(){
   eps.forEach(e=>{
     html+=`<div class="lu-row" data-edit="${e.id}">
       <div class="lu-when">${dowOf(e.day)} ${e.day} · ${fmtShort(e.start)}</div>
-      <div class="lu-title">${e.title}</div>
-      <div class="lu-guest ${e.guest?'':'tbd'}">${e.guest||'Guest — TBD'}</div>
+      <div class="lu-title">${esc(e.title)}</div>
+      <div class="lu-guest ${e.guest?'':'tbd'}">${e.guest?esc(e.guest):'Guest — TBD'}</div>
       <div class="lu-status"><span class="pill-status ${e.status}">${e.status}</span></div></div>`;
   });
   body.innerHTML=html;
@@ -661,8 +661,8 @@ function renderWatch(){
   Object.entries(byPerson).forEach(([p,list])=>{
     const s=list.slice().sort((a,b)=>a.day-b.day||toMin(a.start)-toMin(b.start));
     for(let i=1;i<s.length;i++){ const A=s[i-1],B=s[i];
-      if(A.day===B.day&&toMin(B.start)<toMin(A.end)) problems.push({wt:`JUL ${B.day}`,msg:`<b>${p}</b> double-booked — “${A.title}” overlaps “${B.title}”.`});
-      else if(A.day===B.day){ const gap=toMin(B.start)-toMin(A.end); if(gap>=0&&gap<10&&B.status==='locked') problems.push({wt:`JUL ${B.day}`,msg:`Tight turnaround for <b>${p}</b>: only ${gap} min before locked “${B.title}”.`}); }
+      if(A.day===B.day&&toMin(B.start)<toMin(A.end)) problems.push({wt:`JUL ${B.day}`,msg:`<b>${esc(p)}</b> double-booked — “${esc(A.title)}” overlaps “${esc(B.title)}”.`});
+      else if(A.day===B.day){ const gap=toMin(B.start)-toMin(A.end); if(gap>=0&&gap<10&&B.status==='locked') problems.push({wt:`JUL ${B.day}`,msg:`Tight turnaround for <b>${esc(p)}</b>: only ${gap} min before locked “${esc(B.title)}”.`}); }
     }
   });
   const land=state.events.find(e=>/reklaws land/i.test(e.title)), anchor=state.events.find(e=>e.id==='reklaws-ep');
@@ -700,7 +700,7 @@ function applyFilters(){ document.querySelectorAll('.evt').forEach(el=>{ const t
 document.getElementById('filters').addEventListener('click',e=>{ const b=e.target.closest('.fchip'); if(!b)return; const t=b.dataset.track, on=b.getAttribute('aria-pressed')==='true'; b.setAttribute('aria-pressed',String(!on)); on?activeTracks.delete(t):activeTracks.add(t); applyFilters(); });
 
 /* ========== SELECT DAY ========== */
-function selectDay(day,scroll){ state.selectedDay=day; save(); renderMonth(); renderTabs(); renderBoard(); if(scroll)document.getElementById('board').scrollIntoView({behavior:'smooth',block:'start'}); }
+function selectDay(day,scroll){ state.selectedDay=day; saveLocal(); renderMonth(); renderTabs(); renderBoard(); if(scroll)document.getElementById('board').scrollIntoView({behavior:'smooth',block:'start'}); }
 
 /* ========== EDITOR ========== */
 const drawer=document.getElementById('drawer'), backdrop=document.getElementById('backdrop'), form=document.getElementById('evForm');
@@ -720,6 +720,7 @@ function openEditor(id,presetDay,presetStart,presetEnd){
   F.gear.value=ev?(ev.gear||''):''; F.notes.value=ev?(ev.notes||''):'';
   form.querySelector(`input[name="status"][value="${ev?ev.status:'hold'}"]`).checked=true;
   document.getElementById('delBtn').style.display=ev?'inline-flex':'none';
+  document.getElementById('onDeckBtn').style.display=ev?'inline-flex':'none';
   drawer.classList.add('open'); backdrop.classList.add('open'); drawer.setAttribute('aria-hidden','false');
   setTimeout(()=>F.title.focus(),60);
 }
@@ -740,11 +741,15 @@ function saveEditor(){
 }
 function deleteEditor(){
   const id=F.id.value; if(!id)return; const ev=state.events.find(e=>e.id===id);
-  if(!confirm(`Delete “${ev?ev.title:'this block'}”? This can't be undone.`))return;
+  const msg=(ev&&ev.status==='locked')
+    ? `“${ev.title}” is LOCKED (an anchor block). Delete it anyway? This can't be undone.`
+    : `Delete “${ev?ev.title:'this block'}”? This can't be undone.`;
+  if(!confirm(msg))return;
   state.events=state.events.filter(e=>e.id!==id); save(); renderAll(); closeEditor();
 }
 document.getElementById('saveBtn').addEventListener('click',saveEditor);
 document.getElementById('delBtn').addEventListener('click',deleteEditor);
+document.getElementById('onDeckBtn').addEventListener('click',()=>{ const id=F.id.value; if(id){ unscheduleBlock(id); closeEditor(); } });
 document.getElementById('cancelBtn').addEventListener('click',closeEditor);
 document.getElementById('drawerClose').addEventListener('click',closeEditor);
 backdrop.addEventListener('click',closeEditor);
@@ -760,18 +765,27 @@ document.getElementById('expBtn').addEventListener('click',()=>{
 document.getElementById('impBtn').addEventListener('click',()=>document.getElementById('impFile').click());
 document.getElementById('impFile').addEventListener('change',ev=>{
   const f=ev.target.files[0]; if(!f)return; const r=new FileReader();
-  r.onload=()=>{ try{ const d=JSON.parse(r.result); const arr=Array.isArray(d)?d:d.events; if(!Array.isArray(arr))throw 0;
-    if(!confirm('Import this schedule? It replaces everything currently in the planner.'))return;
-    state.events=arr.map(e=>Object.assign({id:uid(),status:'hold',track:'logistics',people:[]},e)); save(); renderAll();
+  r.onload=async()=>{ try{ const d=JSON.parse(r.result); const src=(d&&d.data)?d.data:d; const arr=Array.isArray(src)?src:src.events; if(!Array.isArray(arr))throw 0;
+    if(!canEdit()){ openSync(); return; }
+    if(!confirm('Import this schedule? It REPLACES the whole shared schedule for everyone. (A backup is a good idea first — use Export.)'))return;
+    state.events=arr.map(e=>Object.assign({id:uid(),status:'hold',track:'logistics',people:[]},e));
+    state.names=Array.isArray(src.names)?src.names:[];
+    saveLocal(); renderAll();
+    try{ const res=await apiReplaceAll(snapshot()); setBaseline(res.data); lastStamp=res.updated_at; setSync('editing'); }catch(err){ setSync('error'); }
   }catch(e){ alert('That file could not be read as a schedule export.'); } ev.target.value=''; };
   r.readAsText(f);
 });
 /* Reset button removed by request — protects the team's planning from an accidental wipe. */
 
-/* ========== LIVE BACKEND SYNC (Cloudflare Worker + D1) ========== */
+/* ========== LIVE BACKEND SYNC (Cloudflare Worker + D1 · granular merge) ==========
+   Each change is sent as a small op (upsert/delete one block, or set the names list),
+   which the server MERGES into the shared schedule. Two people editing different
+   blocks can never overwrite each other. `synced` tracks exactly what the server has
+   so we only ever send what actually changed. */
 const API='https://dream-rally-api.aidanfedds.workers.dev';
 const PW_KEY='dreamRally.teampw';
-let lastStamp=null, pushTimer=null, saving=false, pendingLocal=false;
+let lastStamp=null, pushTimer=null, flushing=false, retryTimer=null;
+const synced={ events:new Map(), names:'[]' };
 function teamPw(){ try{return localStorage.getItem(PW_KEY)||'';}catch(e){return '';} }
 function setPw(p){ try{ p?localStorage.setItem(PW_KEY,p):localStorage.removeItem(PW_KEY);}catch(e){} }
 function canEdit(){ return !!teamPw(); }
@@ -780,47 +794,89 @@ async function apiGet(){
   if(!res.ok) throw new Error('GET '+res.status);
   return res.json();
 }
-async function apiSave(){
-  const res=await fetch(API+'/schedule',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:teamPw(),data:snapshot()})});
+async function apiOp(op){
+  const res=await fetch(API+'/op',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:teamPw(),op})});
   if(res.status===401){ setPw(''); throw new Error('unauthorized'); }
-  if(!res.ok) throw new Error('POST '+res.status);
-  const j=await res.json(); lastStamp=j.updated_at; return j;
+  if(!res.ok) throw new Error('op '+res.status);
+  return res.json();
+}
+async function apiReplaceAll(data){
+  const res=await fetch(API+'/op',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:teamPw(),op:{type:'replaceAll',data}})});
+  if(res.status===401){ setPw(''); throw new Error('unauthorized'); }
+  if(!res.ok) throw new Error('replace '+res.status);
+  return res.json();
 }
 async function apiAuth(pw){
   try{ const res=await fetch(API+'/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})}); const j=await res.json(); return !!j.ok; }catch(e){ return false; }
 }
 function setSync(kind){
   const dot=document.getElementById('syncDot'), txt=document.getElementById('saveStatus'), btn=document.getElementById('connectBtn');
-  const map={view:['#7E8896','Live · view only'],editing:['#53f445','Editing on · live'],saving:['#EFA201','Saving…'],saved:['#53f445','Saved ✓ · live'],unsaved:['#EFA201','Unsaved blocks — unlock to save'],error:['#FF5236','Save failed — retrying']};
+  const map={view:['#7E8896','Live · view only'],editing:['#53f445','Editing on · live'],saving:['#EFA201','Saving…'],unsaved:['#EFA201','Unsaved — unlock to save'],error:['#FF5236','Offline — will retry']};
   const m=map[kind]||map.view; if(dot){dot.style.background=m[0]; dot.style.boxShadow='0 0 10px '+m[0];} if(txt)txt.textContent=m[1]; if(btn)btn.textContent=canEdit()?'Lock':'Unlock editing';
 }
-function scheduleSave(){ setSync('saving'); clearTimeout(pushTimer); pushTimer=setTimeout(()=>{ saving=true; apiSave().then(()=>{ saving=false; pendingLocal=false; setSync('editing'); }).catch(()=>{ saving=false; setSync(canEdit()?'error':'view'); }); },700); }
+function setBaseline(data){
+  synced.events=new Map((data&&Array.isArray(data.events)?data.events:[]).filter(e=>e&&e.id).map(e=>[e.id,JSON.stringify(e)]));
+  synced.names=JSON.stringify(data&&Array.isArray(data.names)?data.names:[]);
+}
+function computeOps(){
+  const ops=[]; const curIds=new Set();
+  for(const e of state.events){ if(!e||!e.id)continue; curIds.add(e.id); const j=JSON.stringify(e); if(synced.events.get(e.id)!==j) ops.push({type:'upsert',event:e,_j:j}); }
+  for(const id of synced.events.keys()){ if(!curIds.has(id)) ops.push({type:'delete',id}); }
+  const nj=JSON.stringify(state.names); if(synced.names!==nj) ops.push({type:'setNames',names:state.names.slice(),_nj:nj});
+  return ops;
+}
+function hasUnsynced(){ return computeOps().length>0; }
+function scheduleSave(){ if(!canEdit())return; setSync('saving'); clearTimeout(pushTimer); pushTimer=setTimeout(flush,600); }
+async function flush(){
+  if(flushing||!canEdit()) return;
+  flushing=true; clearTimeout(retryTimer);
+  try{
+    let ops=computeOps(), guard=0;
+    while(ops.length && guard++<80){
+      for(const op of ops){
+        let payload;
+        if(op.type==='upsert') payload={type:'upsert',event:op.event};
+        else if(op.type==='delete') payload={type:'delete',id:op.id};
+        else payload={type:'setNames',names:op.names};
+        const r=await apiOp(payload); lastStamp=r.updated_at;
+        if(op.type==='upsert') synced.events.set(op.event.id, op._j);
+        else if(op.type==='delete') synced.events.delete(op.id);
+        else synced.names=op._nj;
+      }
+      ops=computeOps();
+    }
+    flushing=false; setSync('editing');
+  }catch(e){
+    flushing=false; setSync(canEdit()?'error':'view');
+    retryTimer=setTimeout(()=>{ if(canEdit()&&hasUnsynced()) flush(); }, 3000);
+  }
+}
+// union server + our local-only blocks (used on first load so nothing local is lost)
 function mergeServer(data){
-  let extras=false;
   if(data&&Array.isArray(data.events)){
     const ids=new Set(data.events.map(e=>e.id));
-    const ex=state.events.filter(e=>!ids.has(e.id));
-    const byId={}; data.events.forEach(e=>byId[e.id]=e); ex.forEach(e=>byId[e.id]=e);
-    state.events=Object.values(byId); if(ex.length)extras=true;
+    const ex=state.events.filter(e=>e&&!ids.has(e.id));
+    state.events=data.events.concat(ex);
   }
   if(data&&Array.isArray(data.names)){
     const set=new Set(data.names.map(n=>n.toLowerCase()));
     const nx=state.names.filter(n=>!set.has(n.toLowerCase()));
-    state.names=data.names.concat(nx); if(nx.length)extras=true;
+    state.names=data.names.concat(nx);
   }
-  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(snapshot()));}catch(e){}
-  return extras;
+  saveLocal();
 }
+// replace local with authoritative server state (only when we have nothing unsynced)
 function adoptServer(data){
   if(!data) return;
   if(Array.isArray(data.events)) state.events=data.events;
   if(Array.isArray(data.names)) state.names=data.names;
-  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(snapshot()));}catch(e){}
+  setBaseline(data); saveLocal();
 }
 async function poll(){
+  if(flushing || (canEdit()&&hasUnsynced()) || drawer.classList.contains('open')) return;
   try{
     const r=await apiGet();
-    if(r&&r.updated_at&&r.updated_at!==lastStamp&&!drawer.classList.contains('open')&&!saving&&!pendingLocal){
+    if(r&&r.updated_at&&r.updated_at!==lastStamp){
       adoptServer(r.data); lastStamp=r.updated_at; renderAll(); setSync(canEdit()?'editing':'view');
     }
   }catch(e){}
@@ -835,11 +891,12 @@ document.getElementById('syncSave').addEventListener('click',async()=>{
   const t=document.getElementById('tokenInput').value.trim(), err=document.getElementById('tokenErr');
   if(!t){ err.textContent='Enter the team password.'; return; }
   err.textContent='Checking…';
-  if(await apiAuth(t)){ setPw(t); err.textContent=''; closeSync(); setSync('editing'); try{ await apiSave(); pendingLocal=false; }catch(e){} }
+  if(await apiAuth(t)){ setPw(t); err.textContent=''; closeSync(); setSync('editing'); if(hasUnsynced()) flush(); }
   else { err.textContent='Wrong password — check with whoever set it up.'; }
 });
 document.getElementById('refreshBtn').addEventListener('click',poll);
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&syncModal.classList.contains('open'))closeSync(); });
+window.addEventListener('online',()=>{ if(canEdit()&&hasUnsynced()) flush(); });
 
 /* ========== ON-DECK NAMES (parking lot) ========== */
 function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -908,13 +965,15 @@ async function boot(){
   try{
     const r=await apiGet();
     if(r && r.data){
-      const hadExtras=mergeServer(r.data); lastStamp=r.updated_at; renderAll();
-      if(hadExtras){ if(canEdit()){ try{ await apiSave(); }catch(e){} setSync('editing'); } else { pendingLocal=true; setSync('unsaved'); } }
-      else setSync(canEdit()?'editing':'view');
-    } else if(canEdit()){ try{ await apiSave(); }catch(e){} setSync('editing'); }
+      setBaseline(r.data);          // baseline = exactly what the server holds
+      mergeServer(r.data);          // local = server + any of my local-only blocks
+      lastStamp=r.updated_at; renderAll();
+      if(canEdit()){ if(hasUnsynced()) await flush(); setSync('editing'); }
+      else setSync(hasUnsynced()?'unsaved':'view');
+    } else if(canEdit()){ if(hasUnsynced()) await flush(); setSync('editing'); }
     else setSync('view');
   }catch(e){ setSync(canEdit()?'error':'view'); }
-  setInterval(poll,6000);
+  setInterval(poll,5000);
 }
 boot();
 </script>
